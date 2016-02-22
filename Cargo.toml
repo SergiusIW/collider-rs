@@ -1,0 +1,6 @@
+[package]
+name = "collider"
+version = "0.1.0"
+authors = ["Matthew Michelotti <matthew@matthewmichelotti.com>"]
+
+[dependencies]
