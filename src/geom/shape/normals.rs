@@ -28,7 +28,7 @@ pub fn circle_circle_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {
     let mut dir = dst.pos - src.pos;
     let dist = dir.len();
     if dist == 0.0 { dir = Vec2::new(1.0, 0.0); }
-    DirVec2::new(dir, src.width() + dst.width() - dist)
+    DirVec2::new(dir, 0.5*(src.width() + dst.width()) - dist)
 }
 
 pub fn rect_circle_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {

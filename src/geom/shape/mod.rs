@@ -175,7 +175,6 @@ impl Neg for PlacedShape {
     }
 }
 
-//TODO move certain tests to be doc tests...
 #[cfg(test)]
 mod tests {
     use geom::*;
@@ -230,5 +229,35 @@ mod tests {
         assert!(dst.normal_from(&src) == DirVec2::new(Vec2::new(0.0, 1.0), 0.0));
         let dst = PlacedShape::new(Vec2::new(-2.0, -3.0), Shape::new_rect(8.0, 2.0));
         assert!(dst.normal_from(&src) == DirVec2::new(Vec2::new(0.0, -1.0), -1.0));
+    }
+    
+    #[test]
+    fn test_circle_circle_normal() {
+        let src = PlacedShape::new(Vec2::new(1.0, 1.0), Shape::new_circle(2.0));
+        let dst = PlacedShape::new(Vec2::new(2.0, 0.0), Shape::new_circle(3.0));
+        assert!(dst.normal_from(&src) == DirVec2::new(Vec2::new(1.0, -1.0), 2.5 - (2.0f64).sqrt()));
+    }
+    
+    #[test]
+    fn test_rect_circle_normal() {
+        let src = PlacedShape::new(Vec2::new(0.0, 0.0), Shape::new_rect(2.0, 2.0));
+        
+        let dst = PlacedShape::new(Vec2::new(-2.0, 0.0), Shape::new_circle(2.5));
+        assert!(dst.normal_from(&src) == DirVec2::new(Vec2::new(-1.0, 0.0), 0.25));
+        let dst = PlacedShape::new(Vec2::new(0.0, -2.0), Shape::new_circle(2.5));
+        assert!(dst.normal_from(&src) == DirVec2::new(Vec2::new(0.0, -1.0), 0.25));
+        let dst = PlacedShape::new(Vec2::new(2.0, 0.0), Shape::new_circle(2.5));
+        assert!(dst.normal_from(&src) == DirVec2::new(Vec2::new(1.0, 0.0), 0.25));
+        let dst = PlacedShape::new(Vec2::new(0.0, 2.0), Shape::new_circle(2.5));
+        assert!(dst.normal_from(&src) == DirVec2::new(Vec2::new(0.0, 1.0), 0.25));
+        
+        let dst = PlacedShape::new(Vec2::new(-2.0, -2.0), Shape::new_circle(2.5));
+        assert!(dst.normal_from(&src) == DirVec2::new(Vec2::new(-1.0, -1.0), 1.25 - (2.0f64).sqrt()));
+        let dst = PlacedShape::new(Vec2::new(2.0, -2.0), Shape::new_circle(2.5));
+        assert!(dst.normal_from(&src) == DirVec2::new(Vec2::new(1.0, -1.0), 1.25 - (2.0f64).sqrt()));
+        let dst = PlacedShape::new(Vec2::new(-2.0, 2.0), Shape::new_circle(2.5));
+        assert!(dst.normal_from(&src) == DirVec2::new(Vec2::new(-1.0, 1.0), 1.25 - (2.0f64).sqrt()));
+        let dst = PlacedShape::new(Vec2::new(2.0, 2.0), Shape::new_circle(2.5));
+        assert!(dst.normal_from(&src) == DirVec2::new(Vec2::new(1.0, 1.0), 1.25 - (2.0f64).sqrt()));
     }
 }
