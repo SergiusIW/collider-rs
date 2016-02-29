@@ -31,7 +31,7 @@ pub struct Shape {
 }
 
 impl Shape {
-    fn new(kind: ShapeKind, width: f64, height: f64) -> Shape {
+    pub fn new(kind: ShapeKind, width: f64, height: f64) -> Shape {
         assert!(kind == ShapeKind::Rect || width == height, "circle width must equal height");
         Shape { kind : kind, width : width, height : height }
     }
