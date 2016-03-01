@@ -33,7 +33,7 @@ impl Card {
         }
     }
     
-    pub fn vals() -> &'static [Card] {
+    pub fn vals() -> &'static [Card; 4] {
         &CARD_VALS
     }
 }
@@ -55,6 +55,9 @@ pub trait PlacedShapeExt {
     fn sector(&self, point: Vec2) -> Sector;
     fn corner(&self, sector: Sector) -> Vec2;
     fn card_overlap(&self, src: &PlacedShape, card: Card) -> f64;
+    fn is_zero(&self) -> bool;
+    fn as_rect(&self) -> PlacedShape;
+    fn bounding_box(&self, other: &PlacedShape) -> PlacedShape;
 }
 
 impl PlacedShapeExt for PlacedShape {
@@ -80,6 +83,25 @@ impl PlacedShapeExt for PlacedShape {
     
     fn card_overlap(&self, src: &PlacedShape, card: Card) -> f64 {
         edge(src, card) + edge(self, card.flip())
+    }
+    
+    fn is_zero(&self) -> bool {
+        self.pos == Vec2::zero() && self.shape.width() == 0.0 && self.shape.height() == 0.0
+    }
+    
+    fn as_rect(&self) -> PlacedShape {
+        PlacedShape::new(self.pos, Shape::new_rect(self.shape.width(), self.shape.height()))
+    }
+    
+    fn bounding_box(&self, other: &PlacedShape) -> PlacedShape {
+        let right = self.right().max(other.right());
+        let top = self.top().max(other.top());
+        let left = self.left().min(other.left());
+        let bottom = self.bottom().min(other.bottom());
+        
+        let shape = Shape::new_rect(right - left, top - bottom);
+        let pos = Vec2::new(left + 0.5*shape.width(), bottom + 0.5*shape.height());
+        PlacedShape::new(pos, shape)
     }
 }
 

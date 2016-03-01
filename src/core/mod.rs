@@ -15,7 +15,12 @@
 mod solvers;
 
 use geom::*;
+use geom_ext::*;
 use std::f64;
+
+const HIGH_TIME: f64 = 1e50;
+
+//TODO check Hitbox consistency when submitting to Collider for a change (e.g. make sure shape width/height is at least padding)
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Hitbox {
@@ -30,7 +35,7 @@ impl Hitbox {
     pub fn new(shape: PlacedShape) -> Hitbox {
         Hitbox {
             shape : shape,
-            vel : PlacedShape::new(Vec2::new(0.0, 0.0), Shape::new(shape.kind(), 0.0, 0.0)),
+            vel : PlacedShape::zero(shape.kind()),
             group : Some(0),
             interactivity_change : false,
             duration : f64::INFINITY
@@ -41,10 +46,36 @@ impl Hitbox {
         assert!(orig_time <= new_time, "requires orig_time <= new_time");
         let delta = new_time - orig_time;
         if delta != 0.0 {
-            self.shape = self.shape + self.vel*delta;
+            self.shape = self.advanced_shape(delta);
             let end_time = orig_time + self.duration;
             assert!(new_time <= end_time, "tried to advance Hitbox beyond its duration");
             self.duration = end_time - new_time;
         }
+    }
+    
+    fn advanced_shape(&self, time: f64) -> PlacedShape {
+        assert!(time <= HIGH_TIME, "requires time <= {}", HIGH_TIME);
+        self.shape + self.vel*time
+    }
+    
+    fn bounding_box(&self) -> PlacedShape {
+        self.bounding_box_for(self.duration)
+    }
+    
+    fn bounding_box_for(&self, duration: f64) -> PlacedShape {
+        if self.vel.is_zero() {
+            self.shape.as_rect()
+        } else {
+            let end_shape = self.advanced_shape(duration);
+            self.shape.bounding_box(&end_shape)
+        }
+    }
+    
+    fn collide_time(&self, other: &Hitbox) -> f64 {
+        solvers::collide_time(self, other)
+    }
+    
+    fn separate_time(&self, other: &Hitbox, padding: f64) -> f64 {
+        solvers::separate_time(self, other, padding)
     }
 }

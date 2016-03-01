@@ -35,6 +35,21 @@ impl Shape {
         assert!(kind == ShapeKind::Rect || width == height, "circle width must equal height");
         Shape { kind : kind, width : width, height : height }
     }
+    
+    #[inline]
+    pub fn zero(kind: ShapeKind) -> Shape {
+        Shape { kind : kind, width : 0.0, height : 0.0 }
+    }
+    
+    #[inline]
+    pub fn zero_rect() -> Shape {
+        Shape::zero(ShapeKind::Rect)
+    }
+    
+    #[inline]
+    pub fn zero_circle() -> Shape {
+        Shape::zero(ShapeKind::Circle)
+    }
 
     pub fn new_circle(diam: f64) -> Shape {
         Shape::new(ShapeKind::Circle, diam, diam)
@@ -100,6 +115,21 @@ impl PlacedShape {
     #[inline]
     pub fn new(pos: Vec2, shape: Shape) -> PlacedShape {
         PlacedShape { pos : pos, shape : shape }
+    }
+    
+    #[inline]
+    pub fn zero(kind: ShapeKind) -> PlacedShape {
+        PlacedShape { pos : Vec2::zero(), shape : Shape::zero(kind) }
+    }
+    
+    #[inline]
+    pub fn zero_rect() -> PlacedShape {
+        PlacedShape::zero(ShapeKind::Rect)
+    }
+    
+    #[inline]
+    pub fn zero_circle() -> PlacedShape {
+        PlacedShape::zero(ShapeKind::Circle)
     }
     
     #[inline]
