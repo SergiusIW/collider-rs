@@ -35,7 +35,7 @@ impl Hitbox {
     pub fn new(shape: PlacedShape) -> Hitbox {
         Hitbox {
             shape : shape,
-            vel : PlacedShape::zero(shape.kind()),
+            vel : PlacedShape::new(Vec2::zero(), Shape::new(shape.kind(), 0.0, 0.0)),
             group : Some(0),
             interactivity_change : false,
             duration : f64::INFINITY
@@ -177,12 +177,12 @@ mod tests {
         assert!(a.separate_time(&b, 0.1) == 0.0);
         
         b.shape.shape == Shape::new_circle(2.0);
-        b.vel.shape == Shape::zero_circle();
+        b.vel.shape == Shape::new_circle(0.0);
         assert!(a.collide_time(&b) == f64::INFINITY);
         assert!(a.separate_time(&b, 0.1) == 0.0);
         
         a.shape.shape == Shape::new_circle(2.0);
-        a.vel.shape == Shape::zero_circle();
+        a.vel.shape == Shape::new_circle(0.0);
         assert!(a.collide_time(&b) == f64::INFINITY);
         assert!(a.separate_time(&b, 0.1) == 0.0);
     }
@@ -199,12 +199,12 @@ mod tests {
         assert!(a.collide_time(&b) == 0.0);
         
         b.shape.shape == Shape::new_circle(2.0);
-        b.vel.shape == Shape::zero_circle();
+        b.vel.shape == Shape::new_circle(0.0);
         assert!(a.separate_time(&b, 0.1) == f64::INFINITY);
         assert!(a.collide_time(&b) == 0.0);
         
         a.shape.shape == Shape::new_circle(2.0);
-        a.vel.shape == Shape::zero_circle();
+        a.vel.shape == Shape::new_circle(0.0);
         assert!(a.separate_time(&b, 0.1) == f64::INFINITY);
         assert!(a.collide_time(&b) == 0.0);
     }
