@@ -92,7 +92,8 @@ mod tests {
         a.vel.pos = Vec2::new(2.0, 0.0);
         a.duration = 100.0;
         let mut b = Hitbox::new(PlacedShape::new(Vec2::new(12.0, 2.0), Shape::new_rect(2.0, 4.0)));
-        b.vel.pos = Vec2::new(-1.0, 0.0);
+        b.vel.pos = Vec2::new(-0.5, 0.0);
+        b.vel.shape = Shape::new_rect(1.0, 0.0);
         b.duration = 100.0;
         assert!(a.collide_time(&b) == 7.0);
         assert!(b.collide_time(&a) == 7.0);
