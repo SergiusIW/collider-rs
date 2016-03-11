@@ -13,6 +13,9 @@
 // limitations under the License.
 
 use std::cmp::Ordering;
+use std::collections::{HashSet, hash_set};
+use std::borrow::Borrow;
+use std::hash::Hash;
 
 #[derive(PartialEq, PartialOrd, Copy, Clone, Default)]
 pub struct N64 {
@@ -54,6 +57,40 @@ pub fn quad_root_ascending(a: f64, b: f64, c: f64) -> Option<f64> {
         Some((2.0*c)/(-b - determinant.sqrt()))
     } else {
         Some((-b + determinant.sqrt())/(2.0*a))
+    }
+}
+
+const MIN_TIGHT_SET_CAPACITY: usize = 4;
+
+pub struct TightSet<T: Hash + Eq> {
+    set: HashSet<T>
+}
+
+impl <T: Hash + Eq> TightSet<T> {
+    pub fn new() -> TightSet<T> {
+        TightSet { set : HashSet::with_capacity(MIN_TIGHT_SET_CAPACITY) }
+    }
+
+    pub fn insert(&mut self, value: T) -> bool {
+        self.set.insert(value)
+    }
+    
+    pub fn remove<Q: ?Sized>(&mut self, value: &Q) -> bool 
+            where T: Borrow<Q>, Q: Hash + Eq
+    {
+        let result = self.remove(value);
+        if result && self.set.capacity() > MIN_TIGHT_SET_CAPACITY && self.set.capacity() >= self.set.len()*4 {
+            self.set.shrink_to_fit();
+        }
+        result
+    }
+
+    pub fn iter(&self) -> hash_set::Iter<T> {
+        self.set.iter()
+    }
+    
+    pub fn is_empty(&self) -> bool {
+        self.set.is_empty()
     }
 }
 

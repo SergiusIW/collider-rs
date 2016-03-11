@@ -85,6 +85,17 @@ mod tests {
     }
     
     #[test]
+    fn test_contains() {
+        let rect = IndexRect::new((2,3),(5,7));
+        assert!(rect.contains((2,3)));
+        assert!(rect.contains((4,6)));
+        assert!(!rect.contains((1,3)));
+        assert!(!rect.contains((2,2)));
+        assert!(!rect.contains((5,6)));
+        assert!(!rect.contains((4,7)));
+    }
+    
+    #[test]
     #[should_panic]
     fn test_new_bad_x() {
         IndexRect::new((4, -5), (4, -4));

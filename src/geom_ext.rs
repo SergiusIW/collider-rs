@@ -14,6 +14,7 @@
 
 use std::cmp::Ordering;
 use geom::*;
+use util::n64;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum Card {
@@ -58,6 +59,7 @@ pub trait PlacedShapeExt {
     fn is_zero(&self) -> bool;
     fn as_rect(&self) -> PlacedShape;
     fn bounding_box(&self, other: &PlacedShape) -> PlacedShape;
+    fn max_edge(&self) -> f64;
 }
 
 impl PlacedShapeExt for PlacedShape {
@@ -102,6 +104,10 @@ impl PlacedShapeExt for PlacedShape {
         let shape = Shape::new_rect(right - left, top - bottom);
         let pos = Vec2::new(left + 0.5*shape.width(), bottom + 0.5*shape.height());
         PlacedShape::new(pos, shape)
+    }
+    
+    fn max_edge(&self) -> f64 {
+        Card::vals().iter().map(|&card| n64(edge(self, card).abs())).max().unwrap().into()
     }
 }
 

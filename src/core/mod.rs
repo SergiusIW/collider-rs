@@ -13,6 +13,7 @@
 // limitations under the License.
 
 mod solvers;
+mod grid;
 
 use geom::*;
 use geom_ext::*;
@@ -79,6 +80,10 @@ impl Hitbox {
         solvers::separate_time(self, other, padding)
     }
 }
+
+pub type HitboxId = u64;
+
+pub type Group = u32;
 
 #[cfg(test)]
 mod tests {
