@@ -34,7 +34,7 @@ struct GridArea {
 }
 
 impl GridArea {
-    fn contains(&self, key: &GridKey) -> bool {
+    fn contains(&self, key: GridKey) -> bool {
         self.group == key.group && self.rect.contains(key.coord)
     }
 }
@@ -49,35 +49,34 @@ impl Grid {
         Grid { map : HashMap::new(), cell_width: cell_width }
     }
 
-    pub fn grid_period(&self, hitbox: &Hitbox) -> f64 {
-        if hitbox.group == None {
-            f64::INFINITY
-        } else {
+    pub fn grid_period(&self, hitbox: &Hitbox, has_group: bool) -> f64 {
+        if has_group {
             let speed = hitbox.vel.max_edge();
             if speed <= 0.0 {
                 f64::INFINITY
             } else {
                 self.cell_width/speed
             }
-        }
-    }
-    
-    pub fn update_hitbox(&mut self, hitbox_id: HitboxId, old_hitbox: &Hitbox, new_hitbox: &Hitbox,
-                         groups: &[Group]) -> HashSet<HitboxId>
-    {
-        assert!(new_hitbox.group.is_some() || groups.is_empty());
-        let old_area = self.index_bounds(old_hitbox);
-        let new_area = self.index_bounds(new_hitbox);
-        self.update_area(hitbox_id, old_area, new_area);
-        if let Some(new_area) = new_area {
-            self.overlapping_ids(hitbox_id, new_area.rect, groups)
         } else {
-            HashSet::with_capacity(0)
+            f64::INFINITY
         }
     }
     
-    fn index_bounds(&self, hitbox: &Hitbox) -> Option<GridArea> {
-        hitbox.group.map(|group| {
+    pub fn update_hitbox(&mut self, hitbox_id: HitboxId, old_hitbox: (&Hitbox, Option<Group>),
+                         new_hitbox: (&Hitbox, Option<Group>), groups: &[Group]) -> Option<HashSet<HitboxId>>
+    {
+        let (old_hitbox, old_group) = old_hitbox;
+        let (new_hitbox, new_group) = new_hitbox;
+        
+        assert!(new_group.is_some() || groups.is_empty());
+        let old_area = self.index_bounds(old_hitbox, old_group);
+        let new_area = self.index_bounds(new_hitbox, new_group);
+        self.update_area(hitbox_id, old_area, new_area);
+        new_area.map(|new_area| self.overlapping_ids(hitbox_id, new_area.rect, groups))
+    }
+    
+    fn index_bounds(&self, hitbox: &Hitbox, group: Option<Group>) -> Option<GridArea> {
+        group.map(|group| {
             let bounds = hitbox.bounding_box();
             let start_x = (bounds.left()/self.cell_width).floor() as i32;
             let start_y = (bounds.bottom()/self.cell_width).floor() as i32;
@@ -106,7 +105,7 @@ impl Grid {
         if let Some(old_area) = old_area {
             for coord in old_area.rect.iter() {
                 let key = GridKey { coord : coord, group : old_area.group };
-                if new_area.map_or(true, |new_area| !new_area.contains(&key)) {
+                if new_area.map_or(true, |new_area| !new_area.contains(key)) {
                     if let hash_map::Entry::Occupied(mut entry) = self.map.entry(key) {
                         let success = entry.get_mut().remove(&hitbox_id);
                         assert!(success);
@@ -120,7 +119,7 @@ impl Grid {
         if let Some(new_area) = new_area {
             for coord in new_area.rect.iter() {
                 let key = GridKey { coord : coord, group : new_area.group };
-                if old_area.map_or(true, |old_area| !old_area.contains(&key)) {
+                if old_area.map_or(true, |old_area| !old_area.contains(key)) {
                    let other_ids = self.map.entry(key).or_insert_with(|| TightSet::new());
                    let success = other_ids.insert(hitbox_id);
                    assert!(success);

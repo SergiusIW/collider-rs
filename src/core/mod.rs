@@ -21,14 +21,15 @@ use std::f64;
 
 const HIGH_TIME: f64 = 1e50;
 
-//TODO check Hitbox consistency when submitting to Collider for a change (e.g. make sure shape width/height is at least padding)
+//TODO check Hitbox consistency when submitting to Collider for a change (e.g. make sure shape width/height is at least padding, duration is non-negative and non-NaN, ...)
+
+pub type HitboxId = u64;
+pub type Group = u32;
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Hitbox {
     pub shape: PlacedShape,
     pub vel: PlacedShape,
-    pub group: Option<u32>,
-    pub interactivity_change: bool,
     pub duration: f64
 }
 
@@ -37,8 +38,6 @@ impl Hitbox {
         Hitbox {
             shape : shape,
             vel : PlacedShape::new(Vec2::zero(), Shape::new(shape.kind(), 0.0, 0.0)),
-            group : Some(0),
-            interactivity_change : false,
             duration : f64::INFINITY
         }
     }
@@ -81,9 +80,11 @@ impl Hitbox {
     }
 }
 
-pub type HitboxId = u64;
-
-pub type Group = u32;
+pub trait Interactivity {
+    fn group(&self) -> Option<Group>;
+    fn interact_groups(&self) -> &'static [Group];
+    fn can_interact(&self, other: &Self) -> bool;
+}
 
 #[cfg(test)]
 mod tests {
