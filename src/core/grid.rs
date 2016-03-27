@@ -14,7 +14,8 @@
 
 use std::collections::{hash_map, HashMap, HashSet};
 use std::{f64, cmp};
-use core::{Group, HitboxId, Hitbox};
+use core::{HitboxId, Hitbox};
+use core::inter::Group;
 use geom_ext::PlacedShapeExt;
 use util::TightSet;
 use index_rect::IndexRect;
@@ -49,7 +50,7 @@ impl Grid {
         Grid { map : HashMap::new(), cell_width: cell_width }
     }
 
-    pub fn grid_period(&self, hitbox: &Hitbox, has_group: bool) -> f64 {
+    pub fn cell_period(&self, hitbox: &Hitbox, has_group: bool) -> f64 {
         if has_group {
             let speed = hitbox.vel.max_edge();
             if speed <= 0.0 {

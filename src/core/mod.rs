@@ -14,6 +14,7 @@
 
 mod solvers;
 mod grid;
+mod collider;
 
 use geom::*;
 use geom_ext::*;
@@ -24,7 +25,6 @@ const HIGH_TIME: f64 = 1e50;
 //TODO check Hitbox consistency when submitting to Collider for a change (e.g. make sure shape width/height is at least padding, duration is non-negative and non-NaN, ...)
 
 pub type HitboxId = u64;
-pub type Group = u32;
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Hitbox {
@@ -78,12 +78,39 @@ impl Hitbox {
     fn separate_time(&self, other: &Hitbox, padding: f64) -> f64 {
         solvers::separate_time(self, other, padding)
     }
+    
+    fn validate(&self, min_size: f64) {
+        assert!(!self.duration.is_nan() && self.duration >= 0.0, "duration must be non-negative");
+        assert!(self.shape.kind() == vel.kind(), "shape and vel have different kinds");
+        assert!(self.shape.width() >= min_size && self.shape.height() >= min_size, "shape width/height must be at least {}", min_size);
+    }
+    
+    fn time_until_too_small(&self, min_size: f64) -> f64 {
+        let min_size = min_size*0.9;
+        assert!(self.shape.width() > min_size && self.shape.height() > min_size, "illegal state");
+        let mut time = f64::INFINITY;
+        if self.vel.width() < 0.0 { time = time.min((min_size - self.shape.width())/self.vel.width()); }
+        if self.vel.height() < 0.0 { time = time.min((min_size - self.shape.height())/self.vel.height()); }
+        time
+    }
 }
 
-pub trait Interactivity {
-    fn group(&self) -> Option<Group>;
-    fn interact_groups(&self) -> &'static [Group];
-    fn can_interact(&self, other: &Self) -> bool;
+pub mod inter {
+    pub type Group = u32;
+
+    static DEFAULT_GROUPS: [Group; 1] = [0];
+
+    pub trait Interactivity {
+        fn group(&self) -> Option<Group> { Some(0) }
+        fn interact_groups(&self) -> &'static [Group] { &DEFAULT_GROUPS }
+        fn can_interact(&self, other: &Self) -> bool;
+    }
+
+    pub struct DefaultInteractivity;
+
+    impl Interactivity for DefaultInteractivity {
+        fn can_interact(&self, other: &Self) -> bool { true }
+    }
 }
 
 #[cfg(test)]

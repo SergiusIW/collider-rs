@@ -17,6 +17,8 @@ use std::collections::{HashSet, hash_set};
 use std::borrow::Borrow;
 use std::hash::Hash;
 
+pub use one_or_two::OneOrTwo;
+
 #[derive(PartialEq, PartialOrd, Copy, Clone, Default)]
 pub struct N64 {
     val: f64
@@ -62,6 +64,7 @@ pub fn quad_root_ascending(a: f64, b: f64, c: f64) -> Option<f64> {
 
 const MIN_TIGHT_SET_CAPACITY: usize = 4;
 
+#[derive(Clone)]
 pub struct TightSet<T: Hash + Eq> {
     set: HashSet<T>
 }
@@ -74,15 +77,21 @@ impl <T: Hash + Eq> TightSet<T> {
     pub fn insert(&mut self, value: T) -> bool {
         self.set.insert(value)
     }
+
+    pub fn contains<Q: ?Sized>(&self, value: &Q) -> bool 
+        where T: Borrow<Q>, Q: Hash + Eq
+    {
+        self.set.contains(value)
+    }
     
     pub fn remove<Q: ?Sized>(&mut self, value: &Q) -> bool 
-            where T: Borrow<Q>, Q: Hash + Eq
+        where T: Borrow<Q>, Q: Hash + Eq
     {
-        let result = self.remove(value);
-        if result && self.set.capacity() > MIN_TIGHT_SET_CAPACITY && self.set.capacity() >= self.set.len()*4 {
+        let success = self.remove(value);
+        if success && self.set.capacity() > MIN_TIGHT_SET_CAPACITY && self.set.capacity() >= self.set.len()*4 {
             self.set.shrink_to_fit();
         }
-        result
+        success
     }
 
     pub fn iter(&self) -> hash_set::Iter<T> {
@@ -91,6 +100,40 @@ impl <T: Hash + Eq> TightSet<T> {
     
     pub fn is_empty(&self) -> bool {
         self.set.is_empty()
+    }
+    
+    pub fn clear() {
+        if self.set.capacity() <= MIN_TIGHT_SET_CAPACITY {
+            self.set.clear();
+        } else {
+            self.set = HashSet::with_capacity(MIN_TIGHT_SET_CAPACITY);
+        }
+    }
+}
+
+mod one_or_two {
+    pub enum OneOrTwo<T: Copy> {
+        One(T),
+        Two(T, T)
+    }
+    
+    pub struct Iter<T: Copy> {
+        one_or_two: OneOrTwo<T>,
+        index: u8
+    }
+    
+    impl <T> Iterator for Iter<T> {
+        type Item = T;
+        fn next(&mut self) -> Option<T> {
+            let result = match (*self, index) {
+                (One(val), 0) => Some(val),
+                (Two(val, _), 0) => Some(val),
+                (Two(_, val), 1) => Some(val),
+                _ => None
+            }
+            if result.is_some() { self.index += 1 }
+            result
+        }
     }
 }
 
