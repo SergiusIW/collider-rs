@@ -13,10 +13,17 @@
 // limitations under the License.
 
 mod event_manager;
-use event_manager::{EventManager, EventKey};
+
+use std::collections::HashMap;
+use std::mem;
+use self::event_manager::{EventManager, EventKey};
+use core::inter::{Interactivity, DefaultInteractivity};
+use core::{Hitbox, HitboxId, HIGH_TIME};
+use core::grid::Grid;
+use util::{TightSet, OneOrTwo};
 
 pub struct Collider<I: Interactivity = DefaultInteractivity> {
-    hitboxes: HashMap<HitboxId, (HitboxInfo, I)>,
+    hitboxes: HashMap<HitboxId, HitboxInfo<I>>,
     time: f64,
     grid: Grid,
     padding: f64,
@@ -39,14 +46,14 @@ impl <I: Interactivity> Collider<I> {
     }
     
     pub fn advance(&mut self, time: f64) {
-        assert!(time >= 0, "time must be non-negative");
+        assert!(time >= 0.0, "time must be non-negative");
         self.time += time;
         assert!(self.time <= self.events.peek_time(), "time must not exceed time_until_next()");
         assert!(self.time < HIGH_TIME, "time must not exceed {}", HIGH_TIME);
     }
     
     pub fn next(&mut self) -> Option<Event> {
-        while let Some(event) = self.events.next(self.time, self.hitboxes) {
+        while let Some(event) = self.events.next(self.time, &mut self.hitboxes) {
             if let Some(event) = self.process_event(event) {
                 return Some(event);
             }
@@ -56,35 +63,37 @@ impl <I: Interactivity> Collider<I> {
     
     fn process_event(&mut self, event: InternalEvent) -> Option<Event> {
         match event {
-            Collide(id_1, id_2) -> {
-                let mut hitbox_info_1 = self.hitboxes.remove(id_1).unwrap();
-                let hitbox_info_2 = self.hitboxes.get_mut(second).unwrap();
+            InternalEvent::Collide(id_1, id_2) => {
+                let mut hitbox_info_1 = self.hitboxes.remove(&id_1).unwrap();
+                let hitbox_info_2 = self.hitboxes.get_mut(&id_2).unwrap();
                 assert!(hitbox_info_1.overlaps.insert(id_2), "illegal state");
                 assert!(hitbox_info_2.overlaps.insert(id_1), "illegal state");
                 let delay = hitbox_info_1.hitbox_at_time(self.time).separate_time(&hitbox_info_2.hitbox_at_time(self.time), self.padding);
-                self.events.add_pair_event(delay, InternalEvent::Separate(id_1, id_2), hitbox_info_1.event_keys, hitbox_info_2.event_keys);
-                assert!(self.hitbox.insert(id_1, hitbox_info_1), "illegal state");
-                Event::new_collide(id_1, id_2)
+                self.events.add_pair_event(self.time + delay, InternalEvent::Separate(id_1, id_2),
+                    &mut hitbox_info_1.event_keys, &mut hitbox_info_2.event_keys);
+                assert!(self.hitboxes.insert(id_1, hitbox_info_1).is_none(), "illegal state");
+                Some(Event::new_collide(id_1, id_2))
             },
-            Separate(id_1, id_2) -> {
-                let mut hitbox_info_1 = self.hitboxes.remove(id_1).unwrap();
-                let hitbox_info_2 = self.hitboxes.get_mut(second).unwrap();
-                assert!(hitbox_info_1.overlaps.remove(id_2), "illegal state");
-                assert!(hitbox_info_2.overlaps.remove(id_1), "illegal state");
+            InternalEvent::Separate(id_1, id_2) => {
+                let mut hitbox_info_1 = self.hitboxes.remove(&id_1).unwrap();
+                let hitbox_info_2 = self.hitboxes.get_mut(&id_2).unwrap();
+                assert!(hitbox_info_1.overlaps.remove(&id_2), "illegal state");
+                assert!(hitbox_info_2.overlaps.remove(&id_1), "illegal state");
                 let delay = hitbox_info_1.hitbox_at_time(self.time).collide_time(&hitbox_info_2.hitbox_at_time(self.time));
-                self.events.add_pair_event(delay, InternalEvent::Collide(id_1, id_2), hitbox_info_1.event_keys, hitbox_info_2.event_keys);
-                assert!(self.hitbox.insert(id_1, hitbox_info_1), "illegal state");
-                Event::new_separate(id_1, id_2)
+                self.events.add_pair_event(self.time + delay, InternalEvent::Collide(id_1, id_2),
+                    &mut hitbox_info_1.event_keys, &mut hitbox_info_2.event_keys);
+                assert!(self.hitboxes.insert(id_1, hitbox_info_1).is_none(), "illegal state");
+                Some(Event::new_separate(id_1, id_2))
             },
-            Reiterate(id) -> {
-                let new_hitbox = self.hitboxes[id].pub_hitbox_at_time(self.time);
+            InternalEvent::Reiterate(id) => {
+                let new_hitbox = self.hitboxes[&id].pub_hitbox_at_time(self.time);
                 self.update_hitbox(id, new_hitbox);
                 None
             },
-            PanicSmallHitbox(id) -> {
+            InternalEvent::PanicSmallHitbox(id) => {
                 panic!("hitbox {} became too small", id)
             },
-            PanicDurationPassed(id) -> {
+            InternalEvent::PanicDurationPassed(id) => {
                 panic!("hitbox {} was not updated before duration passed", id)
             }
         }
@@ -93,24 +102,28 @@ impl <I: Interactivity> Collider<I> {
     pub fn add_hitbox(&mut self, id: HitboxId, hitbox: Hitbox, interactivity: I) {
         let hitbox_info = HitboxInfo::new(hitbox, interactivity, self.time);
         assert!(self.hitboxes.insert(id, hitbox_info).is_none(), "hitbox id {} already in use", id);
-        self.internal_update_hitbox(id, None, None, Phase.Add);
+        self.internal_update_hitbox(id, None, None, Phase::Add);
     }
     
     pub fn remove_hitbox(&mut self, id: HitboxId, hitbox: Hitbox, interactivity: I) {
-        self.internal_update_hitbox(id, None, None, Phase.Remove);
+        self.internal_update_hitbox(id, None, None, Phase::Remove);
         self.hitboxes.remove(id);
     }
     
+    pub fn get_hitbox(&self, id: HitboxId) -> Hitbox {
+        self.hitboxes[id].hitbox_at_time(self.time)
+    }
+    
     pub fn update_hitbox(&mut self, id: HitboxId, hitbox: Hitbox) {
-        self.internal_update_hitbox(id, Some(hitbox), None, Phase.Update);
+        self.internal_update_hitbox(id, Some(hitbox), None, Phase::Update);
     }
     
     pub fn update_interactivity(&mut self, id: HitboxId, interactivity: I) {
-        self.internal_update_hitbox(id, None, Some(interactivity), Phase.Update);
+        self.internal_update_hitbox(id, None, Some(interactivity), Phase::Update);
     }
     
     pub fn update_hitbox_and_interactivity(&mut self, id: HitboxId, hitbox: Hitbox, interactivity: I) {
-        self.internal_update_hitbox(id, Some(hitbox), Some(interactivity), Phase.Update);
+        self.internal_update_hitbox(id, Some(hitbox), Some(interactivity), Phase::Update);
     }
     
     fn internal_update_hitbox(&mut self, id: HitboxId, hitbox: Option<Hitbox>, interactivity: Option<I>, phase: Phase) {
@@ -131,10 +144,10 @@ impl <I: Interactivity> Collider<I> {
                 (old_group, None)
             },
             (Phase::Update, None) => (old_group, old_group),
-            (Phase::Update, Some(interactivity) => {
+            (Phase::Update, Some(interactivity)) => {
                 hitbox_info.interactivity = interactivity;
                 let new_group = hitbox_info.interactivity.group();
-                if(new_group.is_none()) {
+                if new_group.is_none() {
                     self.clear_overlaps(id, &mut hitbox_info);
                 } else {
                     self.recheck_overlap_interactivity(id, &mut hitbox_info);
@@ -153,19 +166,20 @@ impl <I: Interactivity> Collider<I> {
                 let other_hitbox_info = self.hitboxes.get(other_id).unwrap();
                 if hitbox_info.interactivity.can_interact(other_hitbox_info.interactivity) {
                     let delay = hitbox_info.hitbox.collide_time(&other_hitbox_info.hitbox_at_time(self.time));
-                    events.add_pair_event(delay, InternalEvent::Collide(id, other_id), hitbox_info.event_keys, other_hitbox_info.event_keys);
+                    self.events.add_pair_event(self.time + delay, InternalEvent::Collide(id, other_id), hitbox_info.event_keys, other_hitbox_info.event_keys);
                 }
             }
         }
         for other_id in hitbox_info.overlaps.clone() {
+            let other_hitbox_info = self.hitboxes.get(other_id).unwrap();
             let delay = hitbox_info.hitbox.separate_time(&other_hitbox_info.hitbox_at_time(self.time), self.padding);
-            events.add_pair_event(delay, InternalEvent::Separate(id, other_id), hitbox_info.event_keys, other_hitbox_info.event_keys);
+            self.events.add_pair_event(self.time + delay, InternalEvent::Separate(id, other_id), hitbox_info.event_keys, other_hitbox_info.event_keys);
         }
         
         assert!(self.hitboxes.insert(id, hitbox).is_none(), "illegal state");
     }
     
-    fn recheck_overlap_interactivity(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo) {
+    fn recheck_overlap_interactivity(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo<I>) {
         for other_id in hitbox_info.overlaps.clone() {
             let other_hitbox_info = self.hitboxes.get_mut(other_id).unwrap();
             if !hitbox_info.interactivity.can_interact(other_hitbox_info.interactivity) {
@@ -175,7 +189,7 @@ impl <I: Interactivity> Collider<I> {
         }
     }
     
-    fn clear_overlaps(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo) {
+    fn clear_overlaps(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo<I>) {
         for other_id in hitbox_info.overlaps {
             let other_hitbox_info = self.hitboxes.get_mut(other_id).unwrap();
             assert!(other_hitbox_info.overlaps.remove(id), "illegal state");
@@ -183,15 +197,15 @@ impl <I: Interactivity> Collider<I> {
         hitbox_info.overlaps.clear();
     }
     
-    fn solitaire_event_check(&mut self, hitbox_id: HitboxId, hitbox_info: &mut HitboxInfo<I>) {
+    fn solitaire_event_check(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo<I>) {
         hitbox_info.pub_duration = hitbox_info.hitbox.duration;
-        let mut result = (self.grid.cell_period(hitbox), InternalEvent::Reiterate(hitbox_id));
+        let mut result = (self.grid.cell_period(hitbox_info.hitbox), InternalEvent::Reiterate(id));
         let delay = hitbox_info.hitbox.duration;
-        if delay < result.0 { result = (delay, InternalEvent::PanicDurationPassed(hitbox_id)); }
+        if delay < result.0 { result = (delay, InternalEvent::PanicDurationPassed(id)); }
         let delay = hitbox_info.hitbox.time_until_too_small(self.padding);
-        if delay < result.0 { result = (delay, InternalEvent::PanicSmallHitbox(hitbox_id)); }
+        if delay < result.0 { result = (delay, InternalEvent::PanicSmallHitbox(id)); }
         hitbox_info.hitbox.duration = result.0;
-        self.events.add_solitaire_event(result.0, result.1, hitbox_info.key_set);
+        self.events.add_solitaire_event(self.time + result.0, result.1, hitbox_info.key_set);
     }
 }
 
@@ -209,7 +223,7 @@ struct HitboxInfo<I: Interactivity> {
     overlaps: TightSet<HitboxId>
 }
 
-impl HitboxInfo {
+impl <I: Interactivity> HitboxInfo<I> {
     fn new(hitbox: Hitbox, interactivity: Interactivity, start_time: f64) {
         HitboxInfo {
             interactivity: interactivity,
@@ -235,16 +249,27 @@ impl HitboxInfo {
     }
 }
 
-pub enum EventType {
+pub enum EventKind {
     Collide, Separate
 }
 
 pub struct Event {
-    first: HitboxId,
-    second: HitboxId,
-    type: EventType
+    id_1: HitboxId,
+    id_2: HitboxId,
+    kind: EventKind
 }
 
+impl Event {
+    fn new_collide(id_1: HitboxId, id_2: HitboxId) -> Event {
+        Event { id_1 : id_1, id_2 : id_2, kind : EventKind::Collide }
+    }
+    
+    fn new_separate(id_1: HitboxId, id_2: HitboxId) -> Event {
+        Event { id_1 : id_1, id_2 : id_2, kind : EventKind::Separate }
+    }
+}
+
+#[derive(Copy, Clone)]
 enum InternalEvent {
     PanicSmallHitbox(HitboxId),
     PanicDurationPassed(HitboxId),
@@ -254,11 +279,16 @@ enum InternalEvent {
 }
 
 impl InternalEvent {
-    //TODO delete OneOrTwo if not used...
+    fn other_id(self, id: HitboxId) -> Option<HitboxId> {
+        self.involved_hitbox_ids().other_id(id)
+    }
+}
+
+impl InternalEvent {
     fn involved_hitbox_ids(self) -> OneOrTwo<HitboxId> {
         match self {
-            PanicSmallHitbox(id) | PanicDurationPassed(id) | Reiterate(id) => OneOrTwo::One(id),
-            Collide(a, b) | Separate(a, b) => OneOrTwo::Two(a, b)
+            InternalEvent::PanicSmallHitbox(id) | InternalEvent::PanicDurationPassed(id) | InternalEvent::Reiterate(id) => OneOrTwo::One(id),
+            InternalEvent::Collide(a, b) | InternalEvent::Separate(a, b) => OneOrTwo::Two(a, b)
         }
     }
 }

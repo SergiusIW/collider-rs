@@ -17,7 +17,7 @@ use std::collections::{HashSet, hash_set};
 use std::borrow::Borrow;
 use std::hash::Hash;
 
-pub use one_or_two::OneOrTwo;
+pub use self::one_or_two::OneOrTwo;
 
 #[derive(PartialEq, PartialOrd, Copy, Clone, Default)]
 pub struct N64 {
@@ -102,7 +102,7 @@ impl <T: Hash + Eq> TightSet<T> {
         self.set.is_empty()
     }
     
-    pub fn clear() {
+    pub fn clear(&mut self) {
         if self.set.capacity() <= MIN_TIGHT_SET_CAPACITY {
             self.set.clear();
         } else {
@@ -112,25 +112,37 @@ impl <T: Hash + Eq> TightSet<T> {
 }
 
 mod one_or_two {
-    pub enum OneOrTwo<T: Copy> {
+    pub enum OneOrTwo<T: Copy + Eq> {
         One(T),
         Two(T, T)
     }
     
-    pub struct Iter<T: Copy> {
+    impl <T: Copy + Eq> OneOrTwo<T> {
+        fn other_id(self, id: T) -> Option<T> {
+            match self {
+                OneOrTwo::One(id_1) if id_1 == id => None,
+                OneOrTwo::Two(id_1, id_2) | OneOrTwo::Two(id_2, id_1) if id_1 == id => Some(id_2),
+                _ => panic!("illegal state")
+            }
+        }
+        
+        fn iter(self) -> Iter<T> {
+            Iter { one_or_two : self, index : 0 }
+        }
+    }
+    
+    pub struct Iter<T: Copy + Eq> {
         one_or_two: OneOrTwo<T>,
         index: u8
     }
     
-    impl <T> Iterator for Iter<T> {
+    impl <T: Copy + Eq> Iterator for Iter<T> {
         type Item = T;
         fn next(&mut self) -> Option<T> {
-            let result = match (*self, index) {
-                (One(val), 0) => Some(val),
-                (Two(val, _), 0) => Some(val),
-                (Two(_, val), 1) => Some(val),
+            let result = match (self.one_or_two, self.index) {
+                (OneOrTwo::One(val), 0) | (OneOrTwo::Two(val, _), 0) | (OneOrTwo::Two(_, val), 1) => Some(val),
                 _ => None
-            }
+            };
             if result.is_some() { self.index += 1 }
             result
         }

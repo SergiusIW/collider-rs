@@ -81,7 +81,7 @@ impl Hitbox {
     
     fn validate(&self, min_size: f64) {
         assert!(!self.duration.is_nan() && self.duration >= 0.0, "duration must be non-negative");
-        assert!(self.shape.kind() == vel.kind(), "shape and vel have different kinds");
+        assert!(self.shape.kind() == self.vel.kind(), "shape and vel have different kinds");
         assert!(self.shape.width() >= min_size && self.shape.height() >= min_size, "shape width/height must be at least {}", min_size);
     }
     
