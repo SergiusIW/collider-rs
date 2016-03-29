@@ -109,7 +109,7 @@ impl <I: Interactivity> Collider<I> {
         self.internal_update_hitbox(id, None, None, Phase::Add);
     }
     
-    pub fn remove_hitbox(&mut self, id: HitboxId, hitbox: Hitbox, interactivity: I) {
+    pub fn remove_hitbox(&mut self, id: HitboxId) {
         self.internal_update_hitbox(id, None, None, Phase::Remove);
         self.hitboxes.remove(&id);
     }
@@ -222,7 +222,6 @@ enum Phase {
     Add, Remove, Update
 }
 
-//TODO split HitboxInfo into two structs, one with interactivity and one without, so as to avoid unnecessary generic code...
 struct HitboxInfo<I: Interactivity> {
     interactivity: I,
     hitbox: Hitbox,
@@ -258,14 +257,30 @@ impl <I: Interactivity> HitboxInfo<I> {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub enum EventKind {
     Collide, Separate
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Event {
     id_1: HitboxId,
     id_2: HitboxId,
     kind: EventKind
+}
+
+impl Event {
+    pub fn kind(&self) -> EventKind { self.kind }
+    pub fn ids(&self) -> (HitboxId, HitboxId) { (self.id_1, self.id_2) }
+    pub fn id_1(&self) -> HitboxId { self.id_1 }
+    pub fn id_2(&self) -> HitboxId { self.id_2 }
+    pub fn other_id(&self, id: HitboxId) -> HitboxId {
+        match self.ids() {
+            (id_1, id_2) if id_1 == id => id_2,
+            (id_1, id_2) if id_2 == id => id_1,
+            _ => panic!("id {} is not involved in this event", id)
+        }
+    }
 }
 
 impl Event {

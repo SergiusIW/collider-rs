@@ -17,3 +17,5 @@ mod geom_ext;
 mod util;
 mod core;
 mod index_rect;
+
+pub use core::*;

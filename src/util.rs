@@ -87,7 +87,7 @@ impl <T: Hash + Eq> TightSet<T> {
     pub fn remove<Q: ?Sized>(&mut self, value: &Q) -> bool 
         where T: Borrow<Q>, Q: Hash + Eq
     {
-        let success = self.remove(value);
+        let success = self.set.remove(value);
         if success && self.set.capacity() > MIN_TIGHT_SET_CAPACITY && self.set.capacity() >= self.set.len()*4 {
             self.set.shrink_to_fit();
         }

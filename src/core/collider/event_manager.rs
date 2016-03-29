@@ -95,15 +95,6 @@ impl EventManager {
     fn peek_key(&self) -> Option<EventKey> {
         self.events.keys().next().map(|&key| key)
     }
-    
-    //TODO delete function if not used
-    //fn remove_event(&mut self, key: EventKey) {
-    //    assert!(key.time() != f64::INFINITY, "illegal state");
-    //    let event = self.events.remove(key).unwrap();
-    //    for id in event.involved_hitbox_ids().iter() {
-    //        assert!(self.hitboxes.get_mut(id).unwrap().event_keys.remove(key), "illegal state");
-    //    }
-    //}
 }
 
 #[derive(Copy, Clone)]

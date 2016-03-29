@@ -14,8 +14,6 @@
 
 use std::ops::{Add, Sub, Mul, Neg};
 
-//TODO should I be using 'self' or '&self' for functions of Copy trait structs?  for Vec2, DirVec2, Shape, PlacedShape?
-
 #[derive(PartialEq, Copy, Clone, Debug, Default)]
 pub struct Vec2 {
     x: f64,

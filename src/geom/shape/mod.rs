@@ -17,7 +17,7 @@ use geom::{Vec2, DirVec2};
 
 mod normals;
 
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
 pub enum ShapeKind {
     Circle,
     Rect

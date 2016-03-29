@@ -16,13 +16,13 @@ mod solvers;
 mod grid;
 mod collider;
 
+pub use self::collider::*;
+
 use geom::*;
 use geom_ext::*;
 use std::f64;
 
 const HIGH_TIME: f64 = 1e50;
-
-//TODO check Hitbox consistency when submitting to Collider for a change (e.g. make sure shape width/height is at least padding, duration is non-negative and non-NaN, ...)
 
 pub type HitboxId = u64;
 
@@ -109,7 +109,7 @@ pub mod inter {
     pub struct DefaultInteractivity;
 
     impl Interactivity for DefaultInteractivity {
-        fn can_interact(&self, other: &Self) -> bool { true }
+        fn can_interact(&self, _other: &Self) -> bool { true }
     }
 }
 
