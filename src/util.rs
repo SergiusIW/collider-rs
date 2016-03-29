@@ -118,7 +118,7 @@ mod one_or_two {
     }
     
     impl <T: Copy + Eq> OneOrTwo<T> {
-        fn other_id(self, id: T) -> Option<T> {
+        pub fn other_id(self, id: T) -> Option<T> {
             match self {
                 OneOrTwo::One(id_1) if id_1 == id => None,
                 OneOrTwo::Two(id_1, id_2) | OneOrTwo::Two(id_2, id_1) if id_1 == id => Some(id_2),
@@ -126,7 +126,7 @@ mod one_or_two {
             }
         }
         
-        fn iter(self) -> Iter<T> {
+        pub fn iter(self) -> Iter<T> {
             Iter { one_or_two : self, index : 0 }
         }
     }
@@ -139,8 +139,8 @@ mod one_or_two {
     impl <T: Copy + Eq> Iterator for Iter<T> {
         type Item = T;
         fn next(&mut self) -> Option<T> {
-            let result = match (self.one_or_two, self.index) {
-                (OneOrTwo::One(val), 0) | (OneOrTwo::Two(val, _), 0) | (OneOrTwo::Two(_, val), 1) => Some(val),
+            let result = match (&self.one_or_two, self.index) {
+                (&OneOrTwo::One(val), 0) | (&OneOrTwo::Two(val, _), 0) | (&OneOrTwo::Two(_, val), 1) => Some(val),
                 _ => None
             };
             if result.is_some() { self.index += 1 }

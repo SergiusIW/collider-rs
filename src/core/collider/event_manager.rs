@@ -106,6 +106,7 @@ impl EventManager {
     //}
 }
 
+#[derive(Copy, Clone)]
 pub struct EventKey {
     time: N64,
     index: u64
