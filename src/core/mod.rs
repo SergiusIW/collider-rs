@@ -106,6 +106,7 @@ pub mod inter {
         fn can_interact(&self, other: &Self) -> bool;
     }
 
+    #[derive(Default)]
     pub struct DefaultInteractivity;
 
     impl Interactivity for DefaultInteractivity {

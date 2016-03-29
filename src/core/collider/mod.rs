@@ -31,7 +31,7 @@ pub struct Collider<I: Interactivity = DefaultInteractivity> {
 }
 
 impl <I: Interactivity> Collider<I> {
-    pub fn new(cell_width: f64, padding: f64) -> Collider {
+    pub fn new(cell_width: f64, padding: f64) -> Collider<I> {
         Collider {
             hitboxes : HashMap::new(),
             time : 0.0,
@@ -103,7 +103,7 @@ impl <I: Interactivity> Collider<I> {
         }
     }
     
-    pub fn add_hitbox(&mut self, id: HitboxId, hitbox: Hitbox, interactivity: I) {
+    pub fn add_hitbox_with_interactivity(&mut self, id: HitboxId, hitbox: Hitbox, interactivity: I) {
         let hitbox_info = HitboxInfo::new(hitbox, interactivity, self.time);
         assert!(self.hitboxes.insert(id, hitbox_info).is_none(), "hitbox id {} already in use", id);
         self.internal_update_hitbox(id, None, None, Phase::Add);
@@ -218,6 +218,12 @@ impl <I: Interactivity> Collider<I> {
     }
 }
 
+impl <I: Interactivity + Default> Collider<I> {
+    pub fn add_hitbox(&mut self, id: HitboxId, hitbox: Hitbox) {
+        self.add_hitbox_with_interactivity(id, hitbox, I::default());
+    }
+}
+
 enum Phase {
     Add, Remove, Update
 }
@@ -284,12 +290,18 @@ impl Event {
 }
 
 impl Event {
-    fn new_collide(id_1: HitboxId, id_2: HitboxId) -> Event {
-        Event { id_1 : id_1, id_2 : id_2, kind : EventKind::Collide }
+    pub fn new(mut id_1: HitboxId, mut id_2: HitboxId, kind: EventKind) -> Event {
+        assert!(id_1 != id_2, "ids must be different: {} {}", id_1, id_2);
+        if id_1 > id_2 { mem::swap(&mut id_1, &mut id_2); }
+        Event { id_1 : id_1, id_2 : id_2, kind : kind }
+    }
+
+    pub fn new_collide(id_1: HitboxId, id_2: HitboxId) -> Event {
+        Event::new(id_1, id_2, EventKind::Collide)
     }
     
-    fn new_separate(id_1: HitboxId, id_2: HitboxId) -> Event {
-        Event { id_1 : id_1, id_2 : id_2, kind : EventKind::Separate }
+    pub fn new_separate(id_1: HitboxId, id_2: HitboxId) -> Event {
+        Event::new(id_1, id_2, EventKind::Separate)
     }
 }
 
