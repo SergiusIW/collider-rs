@@ -44,7 +44,7 @@ mod tests {
     
     #[test]
     fn smoke_test() {
-        let mut collider: Collider = Collider::new(4.0, 0.25);
+        let mut collider = Collider::new(4.0, 0.25);
         
         let mut hitbox = Hitbox::new(PlacedShape::new(Vec2::new(-10.0, 0.0), Shape::new_rect(2.0, 2.0)));
         hitbox.vel.pos = Vec2::new(1.0, 0.0);
@@ -63,7 +63,7 @@ mod tests {
     
     #[test]
     fn test_hitbox_updates() {
-        let mut collider: Collider = Collider::new(4.0, 0.25);
+        let mut collider = Collider::new(4.0, 0.25);
         
         let mut hitbox = Hitbox::new(PlacedShape::new(Vec2::new(-10.0, 0.0), Shape::new_rect(2.0, 2.0)));
         hitbox.vel.pos = Vec2::new(1.0, 0.0);

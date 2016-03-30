@@ -30,8 +30,8 @@ pub struct Collider<I: Interactivity = DefaultInteractivity> {
     events: EventManager
 }
 
-impl <I: Interactivity> Collider<I> {
-    pub fn new(cell_width: f64, padding: f64) -> Collider<I> {
+impl Collider {
+    pub fn new<I: Interactivity = DefaultInteractivity>(cell_width: f64, padding: f64) -> Collider<I> {
         Collider {
             hitboxes : HashMap::new(),
             time : 0.0,
@@ -40,7 +40,9 @@ impl <I: Interactivity> Collider<I> {
             events : EventManager::new()
         }
     }
-    
+}
+
+impl <I: Interactivity> Collider<I> {
     pub fn time_until_next(&self) -> f64 {
         self.events.peek_time() - self.time
     }
