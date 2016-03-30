@@ -1,6 +1,6 @@
 # collider-rs
 This is a Rust port of the [Java Collider](https://github.com/SergiusIW/collider) library.
-This is a work in progress and not ready for use.
+More details to come...
 
 ### License 
 
