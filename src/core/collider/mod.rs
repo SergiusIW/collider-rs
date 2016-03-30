@@ -17,7 +17,7 @@ mod event_manager;
 use std::collections::HashMap;
 use std::mem;
 use self::event_manager::{EventManager, EventKey};
-use core::inter::{Interactivity, DefaultInteractivity};
+use core::inter::{Interactivity, DefaultInteractivity, Group};
 use core::{Hitbox, HitboxId, HIGH_TIME};
 use core::grid::Grid;
 use util::{TightSet, OneOrTwo};
@@ -90,8 +90,7 @@ impl <I: Interactivity> Collider<I> {
                 Some(Event::new_separate(id_1, id_2))
             },
             InternalEvent::Reiterate(id) => {
-                let new_hitbox = self.hitboxes[&id].pub_hitbox_at_time(self.time);
-                self.update_hitbox(id, new_hitbox);
+                self.internal_update_hitbox(id, None, None, Phase::Update);
                 None
             },
             InternalEvent::PanicSmallHitbox(id) => {
@@ -115,7 +114,7 @@ impl <I: Interactivity> Collider<I> {
     }
     
     pub fn get_hitbox(&self, id: HitboxId) -> Hitbox {
-        self.hitboxes[&id].hitbox_at_time(self.time)
+        self.hitboxes[&id].pub_hitbox_at_time(self.time)
     }
     
     pub fn update_hitbox(&mut self, id: HitboxId, hitbox: Hitbox) {
@@ -161,8 +160,10 @@ impl <I: Interactivity> Collider<I> {
         let old_hitbox = hitbox;
         self.solitaire_event_check(id, &mut hitbox_info, new_group.is_some());
         
+        let empty_group_array: &[Group] = &[];
+        let interact_groups: &[Group] = if new_group.is_some() { hitbox_info.interactivity.interact_groups() } else { empty_group_array };
         let test_ids = self.grid.update_hitbox(
-            id, (&old_hitbox, old_group), (&hitbox_info.hitbox, new_group), hitbox_info.interactivity.interact_groups()
+            id, (&old_hitbox, old_group), (&hitbox_info.hitbox, new_group), interact_groups
         );
         hitbox_info.start_time = self.time;
         

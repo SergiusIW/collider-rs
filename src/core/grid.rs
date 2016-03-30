@@ -69,7 +69,7 @@ impl Grid {
         let (old_hitbox, old_group) = old_hitbox;
         let (new_hitbox, new_group) = new_hitbox;
         
-        assert!(new_group.is_some() || groups.is_empty());
+        assert!(new_group.is_some() || groups.is_empty(), "illegal state");
         let old_area = self.index_bounds(old_hitbox, old_group);
         let new_area = self.index_bounds(new_hitbox, new_group);
         self.update_area(hitbox_id, old_area, new_area);
@@ -109,7 +109,7 @@ impl Grid {
                 if new_area.map_or(true, |new_area| !new_area.contains(key)) {
                     if let hash_map::Entry::Occupied(mut entry) = self.map.entry(key) {
                         let success = entry.get_mut().remove(&hitbox_id);
-                        assert!(success);
+                        assert!(success, "illegal state");
                         if entry.get().is_empty() { entry.remove(); }
                     } else {
                         unreachable!();
@@ -123,7 +123,7 @@ impl Grid {
                 if old_area.map_or(true, |old_area| !old_area.contains(key)) {
                    let other_ids = self.map.entry(key).or_insert_with(|| TightSet::new());
                    let success = other_ids.insert(hitbox_id);
-                   assert!(success);
+                   assert!(success, "illegal state");
                 }
             }
         }
