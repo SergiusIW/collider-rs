@@ -52,7 +52,7 @@ impl <I: Interactivity> Collider<I> {
         assert!(self.time < HIGH_TIME, "time must not exceed {}", HIGH_TIME);
     }
     
-    pub fn next(&mut self) -> Option<Event> {
+    pub fn next(&mut self) -> Option<(Event, HitboxId, HitboxId)> {
         while let Some(event) = self.events.next(self.time, &mut self.hitboxes) {
             if let Some(event) = self.process_event(event) {
                 return Some(event);
@@ -61,7 +61,7 @@ impl <I: Interactivity> Collider<I> {
         None
     }
     
-    fn process_event(&mut self, event: InternalEvent) -> Option<Event> {
+    fn process_event(&mut self, event: InternalEvent) -> Option<(Event, HitboxId, HitboxId)> {
         match event {
             InternalEvent::Collide(id_1, id_2) => {
                 let mut hitbox_info_1 = self.hitboxes.remove(&id_1).unwrap();
@@ -74,7 +74,7 @@ impl <I: Interactivity> Collider<I> {
                         &mut hitbox_info_1.event_keys, &mut hitbox_info_2.event_keys);
                 }
                 assert!(self.hitboxes.insert(id_1, hitbox_info_1).is_none(), "illegal state");
-                Some(Event::new_collide(id_1, id_2))
+                Some(new_event(Event::Collide, id_1, id_2))
             },
             InternalEvent::Separate(id_1, id_2) => {
                 let mut hitbox_info_1 = self.hitboxes.remove(&id_1).unwrap();
@@ -87,7 +87,7 @@ impl <I: Interactivity> Collider<I> {
                         &mut hitbox_info_1.event_keys, &mut hitbox_info_2.event_keys);
                 }
                 assert!(self.hitboxes.insert(id_1, hitbox_info_1).is_none(), "illegal state");
-                Some(Event::new_separate(id_1, id_2))
+                Some(new_event(Event::Separate, id_1, id_2))
             },
             InternalEvent::Reiterate(id) => {
                 self.internal_update_hitbox(id, None, None, Phase::Update);
@@ -265,45 +265,14 @@ impl <I: Interactivity> HitboxInfo<I> {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
-pub enum EventKind {
+pub enum Event {
     Collide, Separate
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
-pub struct Event {
-    id_1: HitboxId,
-    id_2: HitboxId,
-    kind: EventKind
-}
-
-impl Event {
-    pub fn kind(&self) -> EventKind { self.kind }
-    pub fn ids(&self) -> (HitboxId, HitboxId) { (self.id_1, self.id_2) }
-    pub fn id_1(&self) -> HitboxId { self.id_1 }
-    pub fn id_2(&self) -> HitboxId { self.id_2 }
-    pub fn other_id(&self, id: HitboxId) -> HitboxId {
-        match self.ids() {
-            (id_1, id_2) if id_1 == id => id_2,
-            (id_1, id_2) if id_2 == id => id_1,
-            _ => panic!("id {} is not involved in this event", id)
-        }
-    }
-}
-
-impl Event {
-    pub fn new(mut id_1: HitboxId, mut id_2: HitboxId, kind: EventKind) -> Event {
-        assert!(id_1 != id_2, "ids must be different: {} {}", id_1, id_2);
-        if id_1 > id_2 { mem::swap(&mut id_1, &mut id_2); }
-        Event { id_1 : id_1, id_2 : id_2, kind : kind }
-    }
-
-    pub fn new_collide(id_1: HitboxId, id_2: HitboxId) -> Event {
-        Event::new(id_1, id_2, EventKind::Collide)
-    }
-    
-    pub fn new_separate(id_1: HitboxId, id_2: HitboxId) -> Event {
-        Event::new(id_1, id_2, EventKind::Separate)
-    }
+fn new_event(event: Event, mut id_1: HitboxId, mut id_2: HitboxId) -> (Event, HitboxId, HitboxId) {
+    assert!(id_1 != id_2, "ids must be different: {} {}", id_1, id_2);
+    if id_1 > id_2 { mem::swap(&mut id_1, &mut id_2); }
+    (event, id_1, id_2)
 }
 
 #[derive(Copy, Clone)]

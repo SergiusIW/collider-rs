@@ -55,9 +55,9 @@ mod tests {
         collider.add_hitbox(1, hitbox);
         
         advance_to_event(&mut collider, 9.0);
-        assert!(collider.next() == Some(Event::new_collide(0, 1)));
+        assert!(collider.next() == Some((Event::Collide, 0, 1)));
         advance_to_event(&mut collider, 2.125);
-        assert!(collider.next() == Some(Event::new_separate(0, 1)));
+        assert!(collider.next() == Some((Event::Separate, 0, 1)));
         advance(&mut collider, 11.0);
     }
     
@@ -95,7 +95,7 @@ mod tests {
         
         advance_to_event(&mut collider, 5.0);
         
-        assert!(collider.next() == Some(Event::new_collide(0, 1)));
+        assert!(collider.next() == Some((Event::Collide, 0, 1)));
         let mut hitbox = collider.get_hitbox(0);
         assert!(hitbox.shape == PlacedShape::new(Vec2::new(0.0, -6.0), Shape::new_rect(2.0, 2.0)));
         assert!(hitbox.vel == PlacedShape::new(Vec2::new(0.0, -1.0), Shape::new_rect(0.0, 0.0)));
@@ -115,13 +115,13 @@ mod tests {
         
         assert!(collider.time_until_next() == 0.0);
         let (mut event_1, mut event_2) = (collider.next(), collider.next());
-        if event_1.unwrap().id_1() == 1 { mem::swap(&mut event_1, &mut event_2); }
-        assert!(event_1 == Some(Event::new_collide(0, 2)));
-        assert!(event_2 == Some(Event::new_collide(1, 2)));
+        if event_1.unwrap().1 == 1 { mem::swap(&mut event_1, &mut event_2); }
+        assert!(event_1 == Some((Event::Collide, 0, 2)));
+        assert!(event_2 == Some((Event::Collide, 1, 2)));
         
         advance_to_event(&mut collider, 2.125);
         
-        assert!(collider.next() == Some(Event::new_separate(0, 1)));
+        assert!(collider.next() == Some((Event::Separate, 0, 1)));
         
         advance(&mut collider, 5.0);
         
