@@ -2,5 +2,9 @@
 name = "collider"
 version = "0.1.0"
 authors = ["Matthew Michelotti <matthew@matthewmichelotti.com>"]
+description = "A library for continuous 2D collision detection for game developement"
+repository = "https://github.com/SergiusIW/collider-rs"
+keywords = ["collision", "detection", "continuous", "2D", "game"]
+license = "Apache-2.0"
 
 [dependencies]
