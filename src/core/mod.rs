@@ -15,6 +15,7 @@
 mod solvers;
 mod grid;
 mod collider;
+mod events;
 
 pub use self::collider::*;
 

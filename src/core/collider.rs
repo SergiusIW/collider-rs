@@ -12,15 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod event_manager;
-
 use std::collections::HashMap;
 use std::mem;
-use self::event_manager::{EventManager, EventKey};
+use core::events::{EventManager, EventKey, EventKeysMap, InternalEvent};
 use core::inter::{Interactivity, DefaultInteractivity, Group};
 use core::{Hitbox, HitboxId, HIGH_TIME};
 use core::grid::Grid;
-use util::{TightSet, OneOrTwo};
+use util::TightSet;
 
 pub struct Collider<I: Interactivity = DefaultInteractivity> {
     hitboxes: HashMap<HitboxId, HitboxInfo<I>>,
@@ -30,8 +28,8 @@ pub struct Collider<I: Interactivity = DefaultInteractivity> {
     events: EventManager
 }
 
-impl Collider {
-    pub fn new<I: Interactivity = DefaultInteractivity>(cell_width: f64, padding: f64) -> Collider<I> {
+impl <I: Interactivity> Collider<I> {
+    pub fn new(cell_width: f64, padding: f64) -> Collider<I> {
         Collider {
             hitboxes : HashMap::new(),
             time : 0.0,
@@ -40,9 +38,7 @@ impl Collider {
             events : EventManager::new()
         }
     }
-}
-
-impl <I: Interactivity> Collider<I> {
+    
     pub fn time_until_next(&self) -> f64 {
         self.events.peek_time() - self.time
     }
@@ -221,6 +217,12 @@ impl <I: Interactivity> Collider<I> {
     }
 }
 
+impl <I: Interactivity> EventKeysMap for HashMap<HitboxId, HitboxInfo<I>> {
+    fn event_keys_mut(&mut self, id: HitboxId) -> &mut TightSet<EventKey> {
+        &mut self.get_mut(&id).unwrap().event_keys
+    }
+}
+
 impl <I: Interactivity + Default> Collider<I> {
     pub fn add_hitbox(&mut self, id: HitboxId, hitbox: Hitbox) {
         self.add_hitbox_with_interactivity(id, hitbox, I::default());
@@ -275,28 +277,4 @@ fn new_event(event: Event, mut id_1: HitboxId, mut id_2: HitboxId) -> (Event, Hi
     assert!(id_1 != id_2, "ids must be different: {} {}", id_1, id_2);
     if id_1 > id_2 { mem::swap(&mut id_1, &mut id_2); }
     (event, id_1, id_2)
-}
-
-#[derive(Copy, Clone)]
-enum InternalEvent {
-    PanicSmallHitbox(HitboxId),
-    PanicDurationPassed(HitboxId),
-    Reiterate(HitboxId),
-    Collide(HitboxId, HitboxId),
-    Separate(HitboxId, HitboxId)
-}
-
-impl InternalEvent {
-    fn other_id(self, id: HitboxId) -> Option<HitboxId> {
-        self.involved_hitbox_ids().other_id(id)
-    }
-}
-
-impl InternalEvent {
-    fn involved_hitbox_ids(self) -> OneOrTwo<HitboxId> {
-        match self {
-            InternalEvent::PanicSmallHitbox(id) | InternalEvent::PanicDurationPassed(id) | InternalEvent::Reiterate(id) => OneOrTwo::One(id),
-            InternalEvent::Collide(a, b) | InternalEvent::Separate(a, b) => OneOrTwo::Two(a, b)
-        }
-    }
 }
