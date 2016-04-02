@@ -24,6 +24,22 @@
 //! they can update at any time, and Collider will solve for the precise times of
 //! collision and separation.
 //!
+//! There are certain advantages that continuous collision detection
+//! holds over the traditional approach.
+//! In a game engine, the position of a sprite may be updated to overlap a wall,
+//! and in a traditional collision system there would need to be a post-correction
+//! to make sure the sprite does not appear inside of the wall.
+//! This is not needed with continuous collision detection, since
+//! the precise time and location at which the sprite touches the wall is known.
+//! Traditional collision detection may have an issue with "tunneling," in which a
+//! fast small object runs into a narrow wall and collision detection misses it,
+//! or two fast small objects fly right through each other and collision detection misses it.
+//! This is also not a problem for contiuous collision detection.
+//! It is also debatable that continuous collision detection may be
+//! more efficient in certain circumstances,
+//! since the hitboxes may be updated less frequently and still maintain a
+//! smooth appearance over time.
+//!
 //! #Example
 //! ```
 //! use collider::{Collider, Hitbox, Event};
