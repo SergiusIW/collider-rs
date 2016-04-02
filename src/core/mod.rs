@@ -28,14 +28,31 @@ const HIGH_TIME: f64 = 1e50;
 /// Type used as a handle for referencing hitboxes in a `Collider` instance.
 pub type HitboxId = u64;
 
+/// Represents a moving shape for continuous collision testing.
 #[derive(PartialEq, Clone, Debug)]
 pub struct Hitbox {
+    /// The placed shape `shape` at the given point in time.
     pub shape: PlacedShape,
+    
+    /// A velocity that describes how the shape is changing over time.
+    ///
+    /// The `vel` may include the velocity of the width and height of the `shape` as
+    /// well as the velocity of the position.
     pub vel: PlacedShape,
+    
+    /// An upper-bound on the time until this hitbox will be updated by the user.
+    ///
+    /// `f64::INFINITY` may be used as a default, but using a lower value may
+    /// reduce the number of collisions that need to be checked.
+    /// E.g. if you are updating the velocities of a hitbox once every second,
+    /// then use a duration of one second when you update the hitbox.
+    ///
+    /// `Collider` will panic if the duration is exceeded without update.
     pub duration: f64
 }
 
 impl Hitbox {
+    /// Constructs a new hitbox with the given `shape` and a `vel` of zero and `duration` of `f64::INFINITY`.
     pub fn new(shape: PlacedShape) -> Hitbox {
         Hitbox {
             shape : shape,
@@ -97,17 +114,44 @@ impl Hitbox {
     }
 }
 
+/// Contains types that describe interactions between hitboxes.
 pub mod inter {
+    /// A group id that may be used as a first measure to efficiently filter out hitboxes that don't interact.
+    ///
+    /// The total number of groups used should in general be very small.
+    /// Often 1 is enough, and 4 is excessive.
+    /// As an example, in a [danmaku](https://en.wikipedia.org/wiki/Shoot_%27em_up#Bullet_hell_and_niche_appeal) game
+    /// (which has many bullets on screen that do not interact with each other),
+    /// we may use one group for bullets and one group for everything else,
+    /// to avoid the quadratic cost of comparing all nearby bullets with each other.
     pub type Group = u32;
 
     static DEFAULT_GROUPS: [Group; 1] = [0];
 
+    /// Used to determine which pairs of hitboxes should be checked for collisions
+    /// and which pairs should be ignored.
     pub trait Interactivity {
+        /// Returns the group id associated with the hitbox.
+        /// Default is `Some(0)`.
+        ///
+        /// If `None` is returned, then no collisions will be reported
+        /// for this hitbox at all.
         fn group(&self) -> Option<Group> { Some(0) }
+        
+        /// Returns a list of groups that this hitbox can interact with.
+        /// Using large lists of groups may be inefficient.
+        /// Default is `[0]`.
         fn interact_groups(&self) -> &'static [Group] { &DEFAULT_GROUPS }
+        
+        /// Returns true if the pair of hitboxes should be checked for collisions.
+        /// This method should be commutative.
+        /// This method should be consistent with `group` and `interact_groups`,
+        /// although possibly more restrictive.
         fn can_interact(&self, other: &Self) -> bool;
     }
 
+    /// The default implementation of `Interactivity`, in which
+    /// every hitbox is allowed to interact with every other hitbox.
     #[derive(Default)]
     pub struct DefaultInteractivity;
 
