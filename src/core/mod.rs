@@ -25,6 +25,7 @@ use std::f64;
 
 const HIGH_TIME: f64 = 1e50;
 
+/// Type used as a handle for referencing hitboxes in a `Collider` instance.
 pub type HitboxId = u64;
 
 #[derive(PartialEq, Clone, Debug)]

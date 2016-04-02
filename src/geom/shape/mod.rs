@@ -17,12 +17,18 @@ use geom::{Vec2, DirVec2};
 
 mod normals;
 
+/// Enumeration of kinds of shapes used by Collider.
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
 pub enum ShapeKind {
+    /// Circle.  Requires width and height to match.
     Circle,
+    /// Axis-aligned rectangle.
     Rect
 }
 
+/// Represents a shape, without any position.
+///
+/// Each shape has a `width` and `height`, which are allowed to be negative.
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub struct Shape {
     kind: ShapeKind,
@@ -31,29 +37,36 @@ pub struct Shape {
 }
 
 impl Shape {
+    /// Constructs a new shape with the given `kind`, `width`, and `height`.
+    /// If `kind` is `Circle`, then the `width` and `height` must match.
     pub fn new(kind: ShapeKind, width: f64, height: f64) -> Shape {
         assert!(kind == ShapeKind::Rect || width == height, "circle width must equal height");
         Shape { kind : kind, width : width, height : height }
     }
 
+    /// Constructs a new circle shape, using `diam` as the width and height.
     pub fn new_circle(diam: f64) -> Shape {
         Shape::new(ShapeKind::Circle, diam, diam)
     }
     
+    /// Constructs a new axis-aligned rectangle shape with the given `width` and `height`.
     pub fn new_rect(width: f64, height: f64) -> Shape {
         Shape::new(ShapeKind::Rect, width, height)
     }
     
+    /// Returns the kind of shape.
     #[inline]
     pub fn kind(&self) -> ShapeKind {
         self.kind
     }
     
+    /// Returns the width of the shape.
     #[inline]
     pub fn width(&self) -> f64 {
         self.width
     }
     
+    /// Returns the height of the shape.
     #[inline]
     pub fn height(&self) -> f64 {
         self.height
@@ -90,53 +103,76 @@ impl Neg for Shape {
     }
 }
 
+/// Represents a shape with a position.
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub struct PlacedShape {
+    /// The position of the center of the shape.
     pub pos: Vec2,
+    /// The shape.
     pub shape: Shape
 }
 
 impl PlacedShape {
+    /// Constructs a new `PlacedShape` with the given `pos` and `shape`.
     #[inline]
     pub fn new(pos: Vec2, shape: Shape) -> PlacedShape {
         PlacedShape { pos : pos, shape : shape }
     }
     
+    /// Shorthand for `self.shape.kind()`
     #[inline]
     pub fn kind(&self) -> ShapeKind {
         self.shape.kind()
     }
     
+    /// Shorthand for `self.shape.width()`
     #[inline]
     pub fn width(&self) -> f64 {
         self.shape.width()
     }
     
+    /// Shorthand for `self.shape.height()`
     #[inline]
     pub fn height(&self) -> f64 {
         self.shape.height()
     }
     
+    /// Returns the lowest y coordinate of the `PlacedShape`.
     pub fn bottom(&self) -> f64 {
         self.pos.y() - 0.5*self.shape.height()
     }
     
+    /// Returns the lowest x coordinate of the `PlacedShape`.
     pub fn left(&self) -> f64 {
         self.pos.x() - 0.5*self.shape.width()
     }
     
+    /// Returns the highest y coordinate of the `PlacedShape`.
     pub fn top(&self) -> f64 {
         self.pos.y() + 0.5*self.shape.height()
     }
     
+    /// Returns the highest x coordinate of the `PlacedShape`.
     pub fn right(&self) -> f64 {
         self.pos.x() + 0.5*self.shape.width()
     }
     
+    /// Returns `true` if the two shapes overlap, subject to negligible numerical error.
     pub fn overlaps(&self, other: &PlacedShape) -> bool {
         self.normal_from(other).len() >= 0.0
     }
     
+    /// Returns a normal vector that points in the direction from `other` to `self`.
+    ///
+    /// The length of this vector is the minimum distance that `self` would need to
+    /// be moved along this direction so that it is no longer overlapping `other`.
+    /// If the shapes are not overlappingt to begin with, then the length of this vector
+    /// is negative, and describes the minimum distance that `self` would need to
+    /// be moved so that it is just overlapping `other`.
+    ///
+    /// (As a minor caveat,
+    /// when computing the normal between two `Rect` shapes,
+    /// the direction will always be axis-aligned.)
     pub fn normal_from(&self, other: &PlacedShape) -> DirVec2 {
         match (self.kind(), other.kind()) {
             (ShapeKind::Rect, ShapeKind::Rect) => normals::rect_rect_normal(self, other),

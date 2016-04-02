@@ -12,6 +12,44 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! Collider is a library for continuous 2D collision detection,
+//! for use with game developement.
+//! Most game engines follow the approach of periodically updating the
+//! positions of all shapes and checking for collisions at a frozen snapshot in time.
+//! [Continuous collision detection](https://en.wikipedia.org/wiki/Collision_detection#A_posteriori_.28discrete.29_versus_a_priori_.28continuous.29),
+//! on the other hand, means that the time of collision is determined very precisely,
+//! and the user is not restricted to a fixed time-stepping method.
+//! There are currently two kinds of shapes supported by Collider: circles and rectangles.
+//! The user specifies the positions and velocites of these shapes, which
+//! they can update at any time, and Collider will solve for the precise times of
+//! collision and separation.
+//!
+//! #Example
+//! ```
+//! use collider::{Collider, Hitbox, Event};
+//! use collider::geom::{PlacedShape, Shape, Vec2};
+//! 
+//! let mut collider: Collider = Collider::new(4.0, 0.01);
+//!
+//! let mut hitbox = Hitbox::new(PlacedShape::new(Vec2::new(-10.0, 0.0), Shape::new_rect(2.0, 2.0)));
+//! hitbox.vel.pos = Vec2::new(1.0, 0.0);
+//! collider.add_hitbox(0, hitbox);
+//! 
+//! let mut hitbox = Hitbox::new(PlacedShape::new(Vec2::new(10.0, 0.0), Shape::new_circle(2.0)));
+//! hitbox.vel.pos = Vec2::new(-1.0, 0.0);
+//! collider.add_hitbox(1, hitbox);
+//!
+//! let mut time = 0.0;
+//! while time < 9.0 {
+//!     assert!(collider.next() == None);
+//!     let timestep = collider.time_until_next();
+//!     collider.advance(timestep);
+//!     time += timestep;
+//! }
+//! assert!(time == 9.0);
+//! assert!(collider.next() == Some((Event::Collide, 0, 1)));
+//! ```
+
 pub mod geom;
 mod geom_ext;
 mod util;
