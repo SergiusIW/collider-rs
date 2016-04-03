@@ -14,6 +14,7 @@
 
 //! Collider is a library for continuous 2D collision detection,
 //! for use with game developement.
+//!
 //! Most game engines follow the approach of periodically updating the
 //! positions of all shapes and checking for collisions at a frozen snapshot in time.
 //! [Continuous collision detection](https://en.wikipedia.org/wiki/Collision_detection#A_posteriori_.28discrete.29_versus_a_priori_.28continuous.29),
