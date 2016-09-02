@@ -13,7 +13,8 @@
 // limitations under the License.
 
 use std::collections::{hash_map, HashMap, HashSet};
-use std::{f64, cmp};
+use std::cmp;
+use noisy_float::prelude::*;
 use core::{HitboxId, Hitbox};
 use core::inter::Group;
 use geom_ext::PlacedShapeExt;
@@ -42,24 +43,24 @@ impl GridArea {
 
 pub struct Grid {
     map: HashMap<GridKey, TightSet<HitboxId>>,
-    cell_width: f64
+    cell_width: R64
 }
 
 impl Grid {
-    pub fn new(cell_width: f64) -> Grid {
+    pub fn new(cell_width: R64) -> Grid {
         Grid { map : HashMap::new(), cell_width: cell_width }
     }
 
-    pub fn cell_period(&self, hitbox: &Hitbox, has_group: bool) -> f64 {
+    pub fn cell_period(&self, hitbox: &Hitbox, has_group: bool) -> N64 {
         if has_group {
             let speed = hitbox.vel.max_edge();
             if speed <= 0.0 {
-                f64::INFINITY
+                N64::infinity()
             } else {
-                self.cell_width/speed
+                N64::from(self.cell_width) / N64::from(speed)
             }
         } else {
-            f64::INFINITY
+            N64::infinity()
         }
     }
     
@@ -79,10 +80,10 @@ impl Grid {
     fn index_bounds(&self, hitbox: &Hitbox, group: Option<Group>) -> Option<GridArea> {
         group.map(|group| {
             let bounds = hitbox.bounding_box();
-            let start_x = (bounds.left()/self.cell_width).floor() as i32;
-            let start_y = (bounds.bottom()/self.cell_width).floor() as i32;
-            let end_x = cmp::max((bounds.right()/self.cell_width).ceil() as i32, start_x + 1);
-            let end_y = cmp::max((bounds.top()/self.cell_width).ceil() as i32, start_y + 1);
+            let start_x = (bounds.left() / self.cell_width).floor().raw() as i32;
+            let start_y = (bounds.bottom() / self.cell_width).floor().raw() as i32;
+            let end_x = cmp::max((bounds.right() / self.cell_width).ceil().raw() as i32, start_x + 1);
+            let end_y = cmp::max((bounds.top() / self.cell_width).ceil().raw() as i32, start_y + 1);
             GridArea { rect : IndexRect::new((start_x, start_y), (end_x, end_y)), group : group }
         })
     }

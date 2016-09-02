@@ -34,12 +34,6 @@ License](http://www.apache.org/licenses/LICENSE-2.0.html).
 
 (Note: this section is intended for people who have already familiarized themselves with the library.)
 
-Collider currently has features enough to merit using as-is,
-but I have still to put it through it's paces to determine if there are notable flaws.
-The only breaking change I foresee in the future is possibly changing how `HitboxId`s work;
-they are currently an integer used as a handle, but that may change.
-`Interactivity` may also change with this.
-
 There are a few new features that may be added in the more distant future, or if I receive high demand
 * Extending the functionality of `PlacedShape.normal_from` so that the user
   may restrict which edges of a shape may induce a normal vector
@@ -48,3 +42,7 @@ There are a few new features that may be added in the more distant future, or if
   that point away from the wall are generated).
 * Adding right-triangles to the set of possible shapes.
   (Note: I do not intend to add general polygons)
+
+The only breaking change I foresee in the future is possibly changing how `HitboxId`s work;
+they are currently an integer used as a handle, but that may change.
+`Interactivity` may also change with this.

@@ -14,6 +14,7 @@
 
 use std::collections::HashMap;
 use std::mem;
+use noisy_float::prelude::*;
 use core::events::{EventManager, EventKey, EventKeysMap, InternalEvent};
 use core::inter::{Interactivity, DefaultInteractivity, Group};
 use core::{Hitbox, HitboxId, HIGH_TIME};
@@ -23,9 +24,9 @@ use util::TightSet;
 /// A structure that tracks hitboxes and returns collision/separation events.
 pub struct Collider<I: Interactivity = DefaultInteractivity> {
     hitboxes: HashMap<HitboxId, HitboxInfo<I>>,
-    time: f64,
+    time: N64,
     grid: Grid,
-    padding: f64,
+    padding: R64,
     events: EventManager
 }
 
@@ -51,12 +52,12 @@ impl <I: Interactivity> Collider<I> {
     /// user, perhaps a fraction of a "pixel."
     /// Another restriction introduced by `padding` is that hitboxes are not
     /// allowed to have a width or height smaller than `padding`.
-    pub fn new(cell_width: f64, padding: f64) -> Collider<I> {
+    pub fn new(cell_width: R64, padding: R64) -> Collider<I> {
         assert!(cell_width > padding, "requires cell_width > padding");
         assert!(padding > 0.0, "requires padding > 0.0");
         Collider {
             hitboxes : HashMap::new(),
-            time : 0.0,
+            time : n64(0.0),
             grid : Grid::new(cell_width),
             padding : padding,
             events : EventManager::new()
@@ -71,7 +72,7 @@ impl <I: Interactivity> Collider<I> {
     /// returns `None`, then `self.time_until_next()` will be greater than `0.0` again.
     ///
     /// This is a fast constant-time operation.
-    pub fn time_until_next(&self) -> f64 {
+    pub fn time_until_next(&self) -> N64 {
         self.events.peek_time() - self.time
     }
     
@@ -81,7 +82,7 @@ impl <I: Interactivity> Collider<I> {
     ///
     /// The hitboxes are updated implicitly, and this is actually a
     /// fast constant-time operation.
-    pub fn advance(&mut self, time: f64) {
+    pub fn advance(&mut self, time: N64) {
         assert!(time >= 0.0, "time must be non-negative");
         self.time += time;
         assert!(self.time <= self.events.peek_time(), "time must not exceed time_until_next()");
@@ -302,14 +303,14 @@ enum Phase {
 struct HitboxInfo<I: Interactivity> {
     interactivity: I,
     hitbox: Hitbox,
-    start_time: f64,
-    pub_duration: f64,
+    start_time: N64,
+    pub_duration: N64,
     event_keys: TightSet<EventKey>,
     overlaps: TightSet<HitboxId>
 }
 
 impl <I: Interactivity> HitboxInfo<I> {
-    fn new(hitbox: Hitbox, interactivity: I, start_time: f64) -> HitboxInfo<I> {
+    fn new(hitbox: Hitbox, interactivity: I, start_time: N64) -> HitboxInfo<I> {
         HitboxInfo {
             interactivity: interactivity,
             pub_duration: hitbox.duration,
@@ -320,13 +321,13 @@ impl <I: Interactivity> HitboxInfo<I> {
         }
     }
 
-    fn hitbox_at_time(&self, time: f64) -> Hitbox {
+    fn hitbox_at_time(&self, time: N64) -> Hitbox {
         let mut result = self.hitbox.clone();
         result.advance(self.start_time, time);
         result
     }
     
-    fn pub_hitbox_at_time(&self, time: f64) -> Hitbox {
+    fn pub_hitbox_at_time(&self, time: N64) -> Hitbox {
         let mut result = self.hitbox.clone();
         result.duration = self.pub_duration;
         result.advance(self.start_time, time);

@@ -11,3 +11,4 @@ keywords = ["collision", "detection", "continuous", "2D", "game"]
 license = "Apache-2.0"
 
 [dependencies]
+noisy_float = "^0.1.1"

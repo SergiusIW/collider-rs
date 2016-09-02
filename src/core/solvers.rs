@@ -12,75 +12,75 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use noisy_float::prelude::*;
 use core::{Hitbox, self};
 use geom::*;
 use geom_ext::*;
 use util;
-use std::f64;
 
-pub fn collide_time(a: &Hitbox, b: &Hitbox) -> f64 {
+pub fn collide_time(a: &Hitbox, b: &Hitbox) -> N64 {
     let duration = a.duration.min(b.duration);
     if a.bounding_box_for(duration).overlaps(&b.bounding_box_for(duration)) {
         time_unpadded(a, b, true, duration)
     } else {
-        f64::INFINITY
+        N64::infinity()
     }
 }
 
-pub fn separate_time(a: &Hitbox, b: &Hitbox, padding: f64) -> f64 {
+pub fn separate_time(a: &Hitbox, b: &Hitbox, padding: R64) -> N64 {
     let (a, b) = match (a.shape.kind(), b.shape.kind()) {
         (ShapeKind::Rect, ShapeKind::Circle) => (b, a),
         _ => (a, b)
     };
     let mut a = a.clone();
-    a.shape.shape = Shape::new(a.shape.kind(), a.shape.width() + 2.0*padding, a.shape.height() + 2.0*padding);
+    a.shape.shape = Shape::new(a.shape.kind(), a.shape.dims() + vec2(padding, padding) * 2.0);
     time_unpadded(&a, b, false, a.duration.min(b.duration))
 }
 
-fn time_unpadded(a: &Hitbox, b: &Hitbox, for_collide: bool, duration: f64) -> f64 {
+fn time_unpadded(a: &Hitbox, b: &Hitbox, for_collide: bool, duration: N64) -> N64 {
     let result = match (a.shape.kind(), b.shape.kind()) {
         (ShapeKind::Rect, ShapeKind::Rect) => rect_rect_time(a, b, for_collide),
         (ShapeKind::Circle, ShapeKind::Circle) => circle_circle_time(a, b, for_collide),
         (ShapeKind::Rect, ShapeKind::Circle) => rect_circle_time(a, b, for_collide, duration),
         (ShapeKind::Circle, ShapeKind::Rect) => rect_circle_time(b, a, for_collide, duration)
     };
-    if result >= duration { f64::INFINITY } else { result }
+    if result >= duration { N64::infinity() } else { result }
 }
 
-fn rect_rect_time(a: &Hitbox, b: &Hitbox, for_collide: bool) -> f64 {
-    let mut overlap_start = 0.0f64;
-    let mut overlap_end = f64::INFINITY;
+fn rect_rect_time(a: &Hitbox, b: &Hitbox, for_collide: bool) -> N64 {
+    let mut overlap_start = n64(0.0);
+    let mut overlap_end = N64::infinity();
     for &card in Card::vals() {
         let overlap = a.shape.card_overlap(&b.shape, card);
         let overlap_vel = a.vel.card_overlap(&b.vel, card);
         if overlap < 0.0 {
             if !for_collide {
-                return 0.0;
+                return n64(0.0);
             } else if overlap_vel <= 0.0 {
-                return f64::INFINITY;
+                return N64::infinity();
             } else {
-                overlap_start = overlap_start.max(-overlap/overlap_vel);
+                overlap_start = overlap_start.max(-N64::from(overlap) / N64::from(overlap_vel));
             }
         } else if overlap_vel < 0.0 {
-            overlap_end = overlap_end.min(-overlap/overlap_vel);
+            overlap_end = overlap_end.min(-N64::from(overlap) / N64::from(overlap_vel));
         }
         if overlap_start >= overlap_end {
-            return if for_collide { f64::INFINITY } else { 0.0 };
+            return if for_collide { N64::infinity() } else { n64(0.0) };
         }
     }
     if for_collide { overlap_start } else { overlap_end }
 }
 
-fn circle_circle_time(a: &Hitbox, b: &Hitbox, for_collide: bool) -> f64 {
-    let sign = if for_collide { 1.0 } else { -1.0 };
+fn circle_circle_time(a: &Hitbox, b: &Hitbox, for_collide: bool) -> N64 {
+    let sign = if for_collide { r64(1.0) } else { r64(-1.0) };
     
-    let net_rad = 0.5 * (a.shape.width() + b.shape.width());
+    let net_rad = (a.shape.dims().x + b.shape.dims().x) * 0.5;
     let dist = a.shape.pos - b.shape.pos;
     
     let coeff_c = sign * (net_rad * net_rad - dist.len_sq());
-    if coeff_c > 0.0 { return 0.0; }
+    if coeff_c > 0.0 { return n64(0.0); }
     
-    let net_rad_vel = 0.5 * (a.vel.width() + b.vel.width());
+    let net_rad_vel = (a.vel.dims().x + b.vel.dims().x) * 0.5;
     let dist_vel = a.vel.pos - b.vel.pos;
     
     let coeff_a = sign * (net_rad_vel * net_rad_vel - dist_vel.len_sq());
@@ -88,11 +88,11 @@ fn circle_circle_time(a: &Hitbox, b: &Hitbox, for_collide: bool) -> f64 {
     
     match util::quad_root_ascending(coeff_a, coeff_b, coeff_c) {
         Some(result) if result >= 0.0 => result,
-        _ => f64::INFINITY
+        _ => N64::infinity()
     }
 }
 
-fn rect_circle_time(rect: &Hitbox, circle: &Hitbox, for_collide: bool, duration: f64) -> f64 {
+fn rect_circle_time(rect: &Hitbox, circle: &Hitbox, for_collide: bool, duration: N64) -> N64 {
     if for_collide {
         rect_circle_collide_time(rect, circle, duration)
     } else {
@@ -100,19 +100,19 @@ fn rect_circle_time(rect: &Hitbox, circle: &Hitbox, for_collide: bool, duration:
     }
 }
 
-fn rect_circle_collide_time(rect: &Hitbox, circle: &Hitbox, duration: f64) -> f64 {
+fn rect_circle_collide_time(rect: &Hitbox, circle: &Hitbox, duration: N64) -> N64 {
     let base_time = rect_rect_time(rect, circle, true);
     if base_time >= duration {
-        f64::INFINITY
+        N64::infinity()
     } else {
         base_time + rebased_rect_circle_collide_time(rect, circle)
     }
 }
 
-fn rect_circle_separate_time(rect: &Hitbox, circle: &Hitbox) -> f64 {
+fn rect_circle_separate_time(rect: &Hitbox, circle: &Hitbox) -> N64 {
     let base_time = rect_rect_time(rect, circle, false);
-    if base_time == 0.0 { return 0.0 }
-    if base_time >= core::HIGH_TIME { return f64::INFINITY }
+    if base_time == 0.0 { return n64(0.0) }
+    if base_time >= core::HIGH_TIME { return N64::infinity() }
     
     let mut rect = rect.clone();
     rect.shape = rect.advanced_shape(base_time);
@@ -122,16 +122,16 @@ fn rect_circle_separate_time(rect: &Hitbox, circle: &Hitbox) -> f64 {
     circle.shape = circle.advanced_shape(base_time);
     circle.vel = -circle.vel;
     
-    (base_time - rebased_rect_circle_collide_time(&rect, &circle)).max(0.0)
+    (base_time - rebased_rect_circle_collide_time(&rect, &circle)).max(n64(0.0))
 }
 
-fn rebased_rect_circle_collide_time(rect: &Hitbox, circle: &Hitbox) -> f64 {
+fn rebased_rect_circle_collide_time(rect: &Hitbox, circle: &Hitbox) -> N64 {
     let sector = rect.shape.sector(circle.shape.pos);
     if sector.is_corner() {
-        let mut corner = Hitbox::new(PlacedShape::new(rect.shape.corner(sector), Shape::new_circle(0.0)));
+        let mut corner = Hitbox::new(PlacedShape::new(rect.shape.corner(sector), Shape::new_circle(r64(0.0))));
         corner.vel.pos = rect.vel.corner(sector);
         circle_circle_time(&corner, circle, true)
     } else {
-        0.0
+        n64(0.0)
     }
 }

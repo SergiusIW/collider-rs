@@ -14,12 +14,12 @@
 
 use geom::*;
 use geom_ext::*;
-use util::n64;
+use noisy_float::prelude::*;
 
 pub fn rect_rect_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {
     let (card, overlap) = Card::vals().iter()
         .map(|&card| (card, dst.card_overlap(src, card)))
-        .min_by_key(|&(_, overlap)| n64(overlap))
+        .min_by_key(|&(_, overlap)| overlap)
         .unwrap();
     DirVec2::new(card.into(), overlap)
 }
@@ -27,14 +27,14 @@ pub fn rect_rect_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {
 pub fn circle_circle_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {
     let mut dir = dst.pos - src.pos;
     let dist = dir.len();
-    if dist == 0.0 { dir = Vec2::new(1.0, 0.0); }
-    DirVec2::new(dir, 0.5*(src.width() + dst.width()) - dist)
+    if dist == 0.0 { dir = vec2_f(1.0, 0.0); }
+    DirVec2::new(dir, (src.dims().x + dst.dims().x) * 0.5 - dist)
 }
 
 pub fn rect_circle_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {
     let sector = dst.sector(src.pos);
     if sector.is_corner() {
-        circle_circle_normal(&PlacedShape::new(dst.corner(sector), Shape::new_circle(0.0)), src)
+        circle_circle_normal(&PlacedShape::new(dst.corner(sector), Shape::new_circle(r64(0.0))), src)
     } else {
         rect_rect_normal(dst, src)
     }

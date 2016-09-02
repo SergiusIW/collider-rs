@@ -13,18 +13,21 @@
 // limitations under the License.
 
 use std::ops::{Add, Sub, Mul, Neg};
+use noisy_float::prelude::*;
 
-/// A 2-D Cartesian vector using `f64` values.
+/// A 2-D Cartesian vector using finite `f64` values.
 #[derive(PartialEq, Copy, Clone, Debug, Default)]
 pub struct Vec2 {
-    x: f64,
-    y: f64
+    /// The x-coordinate.
+    pub x: R64,
+    /// The y-coordinate.
+    pub y: R64
 }
 
 impl Vec2 {
     /// Constructs a vector with the given `x` and `y` coordinates.
     #[inline]
-    pub fn new(x: f64, y: f64) -> Vec2 {
+    pub fn new(x: R64, y: R64) -> Vec2 {
         Vec2 { x : x, y : y }
     }
     
@@ -34,83 +37,115 @@ impl Vec2 {
         Vec2::default()
     }
     
-    /// Returns the `x` coordinate.
-    #[inline]
-    pub fn x(&self) -> f64 {
-        self.x
-    }
-    
-    /// Returns the `y` coordinate
-    #[inline]
-    pub fn y(&self) -> f64 {
-        self.y
-    }
-    
     /// Computes the square of the Euclidean length of the vector.
-    /// (Due to underflow, this might be `0.0` even if `x` and `y` are non-zero but very small.)
-    pub fn len_sq(&self) -> f64 {
-        self.x()*self.x() + self.y()*self.y()
+    ///
+    /// Due to underflow, this might be `0.0` even if `x` and `y` are non-zero but very small.
+    pub fn len_sq(&self) -> R64 {
+        self.x*self.x + self.y*self.y
     }
     
     /// Computes the the Euclidean length of the vector.
-    /// (Due to underflow, this might be `0.0` even if `x` and `y` are non-zero but very small.)
-    pub fn len(&self) -> f64 {
+    ///
+    /// Due to underflow, this might be `0.0` even if `x` and `y` are non-zero but very small.
+    pub fn len(&self) -> R64 {
         self.len_sq().sqrt()
     }
     
-    /// Returns a vector in the same direction as `self` but with length (approximately) `1.0`.
-    /// Panics if `self.len() == 0.0'.
-    pub fn normalize(&self) -> Vec2 {
+    /// Returns a vector in the same direction as `self` but with length (approximately) `1.0`,
+    /// or `None` if `self.len() == 0.0'.
+    pub fn normalize(&self) -> Option<Vec2> {
         let len = self.len();
-        assert!(len > 0.0, "can only normalize vector if length is non-zero");
-        //TODO return self if len is near 1.0? (can re-normalizing a normalized vector change its value slightly?)
-        Vec2::new(self.x()/len, self.y()/len)
+        if len == 0.0 {
+            None
+        } else {
+            Some(Vec2::new(self.x/len, self.y/len))
+            //TODO return self if len is near 1.0? (can re-normalizing a normalized vector change its value slightly?)
+        }
     }
     
     /// Computes the square of the Euclidean distance between two vectors.
-    pub fn dist_sq(&self, other: &Vec2) -> f64 {
+    pub fn dist_sq(&self, other: &Vec2) -> R64 {
         (*self - *other).len_sq()
     }
     
     /// Computes the Euclidean distance between two vectors.
-    pub fn dist(&self, other: &Vec2) -> f64 {
+    pub fn dist(&self, other: &Vec2) -> R64 {
         (*self - *other).len()
+    }
+    
+    /// Linearly interpolates between `self` and `other`.
+    ///
+    /// Using `ratio = 0.0` will return `self`, and using `ratio = 1.0` will return `other`.
+    /// Can also extrapolate using `ratio > 1.0` or `ratio < 0.0`.
+    pub fn lerp(&self, other: Vec2, ratio: R64) -> Vec2 {
+        *self * (-ratio + 1.0) + other * ratio
+    }
+    
+    /// Rotates the vector by `angle` radians counter-clockwise (assuming +x is right and +y is up).
+    pub fn rotate_rad(&self, angle: R64) -> Vec2 {
+        let sin = angle.sin();
+        let cos = angle.cos();
+        Vec2::new(cos * self.x - sin * self.y, sin * self.x + cos * self.y)
+    }
+    
+    /// Rotates the vector by `angle` degrees counter-clockwise (assuming +x is right and +y is up).
+    ///
+    /// Angle is specified in degrees.
+    pub fn rotate_deg(&self, angle: R64) -> Vec2 {
+        self.rotate_rad(angle.to_radians())
+    }
+}
+
+impl Mul<R64> for Vec2 {
+    type Output = Vec2;
+    fn mul(self, rhs: R64) -> Vec2 {
+        Vec2::new(self.x * rhs, self.y * rhs)
     }
 }
 
 impl Mul<f64> for Vec2 {
     type Output = Vec2;
     fn mul(self, rhs: f64) -> Vec2 {
-        Vec2::new(self.x()*rhs, self.y()*rhs)
+        Vec2::new(self.x * rhs, self.y * rhs)
     }
 }
 
 impl Mul<Vec2> for Vec2 {
-    type Output = f64;
-    fn mul(self, rhs: Vec2) -> f64 {
-        self.x()*rhs.x() + self.y()*rhs.y()
+    type Output = R64;
+    fn mul(self, rhs: Vec2) -> R64 {
+        self.x*rhs.x + self.y*rhs.y
     }
 }
 
 impl Add for Vec2 {
     type Output = Vec2;
     fn add(self, rhs: Vec2) -> Vec2 {
-        Vec2::new(self.x() + rhs.x(), self.y() + rhs.y())
+        Vec2::new(self.x + rhs.x, self.y + rhs.y)
     }
 }
 
 impl Sub for Vec2 {
     type Output = Vec2;
     fn sub(self, rhs: Vec2) -> Vec2 {
-        Vec2::new(self.x() - rhs.x(), self.y() - rhs.y())
+        Vec2::new(self.x - rhs.x, self.y - rhs.y)
     }
 }
 
 impl Neg for Vec2 {
     type Output = Vec2;
     fn neg(self) -> Vec2 {
-        Vec2::new(-self.x(), -self.y())
+        Vec2::new(-self.x, -self.y)
     }
+}
+
+#[inline]
+pub fn vec2(x: R64, y: R64) -> Vec2 {
+    Vec2::new(x, y)
+}
+
+#[inline]
+pub fn vec2_f(x: f64, y: f64) -> Vec2 {
+    Vec2::new(r64(x), r64(y))
 }
 
 /// A 2-D vector that separates direction from length.
@@ -124,14 +159,15 @@ impl Neg for Vec2 {
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub struct DirVec2 {
     dir: Vec2,
-    len: f64
+    len: R64
 }
 
 impl DirVec2 {
     /// Constructs a vector with the given direction `dir` and length `len`.
+    ///
     /// `dir` is normalized before being set.
-    pub fn new(dir: Vec2, len: f64) -> DirVec2 {
-        DirVec2 { dir : dir.normalize(), len : len }
+    pub fn new(dir: Vec2, len: R64) -> DirVec2 {
+        DirVec2 { dir : dir.normalize().unwrap(), len : len }
     }
     
     /// Returns the direction as a unit vector.
@@ -142,7 +178,7 @@ impl DirVec2 {
     
     /// Returns the length of the vector.  May be positive or negative.
     #[inline]
-    pub fn len(&self) -> f64 {
+    pub fn len(&self) -> R64 {
         self.len
     }
     
@@ -154,6 +190,6 @@ impl DirVec2 {
 
 impl Into<Vec2> for DirVec2 {
     fn into(self) -> Vec2 {
-        Vec2::new(self.dir().x()*self.len(), self.dir().y()*self.len())
+        Vec2::new(self.dir().x*self.len(), self.dir().y*self.len())
     }
 }

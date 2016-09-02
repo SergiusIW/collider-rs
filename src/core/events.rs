@@ -14,10 +14,10 @@
 
 use std::collections::BTreeMap;
 use std::cmp::Ordering;
-use std::f64;
 use std::hash::{Hash, Hasher};
+use noisy_float::prelude::*;
 use core::HitboxId;
-use util::{TightSet, n64, N64, OneOrTwo};
+use util::{TightSet, OneOrTwo};
 
 const PAIR_BASE: u64 = 0x8000_0000_0000_0000;
 
@@ -28,8 +28,8 @@ pub struct EventKey {
 }
 
 impl EventKey {
-    fn time(&self) -> f64 {
-        self.time.into()
+    fn time(&self) -> N64 {
+        self.time
     }
 }
 
@@ -100,14 +100,14 @@ impl EventManager {
         EventManager { events : BTreeMap::new(), next_event_index : 0 }
     }
 
-    pub fn add_solitaire_event(&mut self, time: f64, event: InternalEvent, key_set: &mut TightSet<EventKey>) {
+    pub fn add_solitaire_event(&mut self, time: N64, event: InternalEvent, key_set: &mut TightSet<EventKey>) {
         if let Some(key) = self.new_event_key(time, false) {
             assert!(self.events.insert(key, event).is_none(), "illegal state");
             assert!(key_set.insert(key), "illegal state");
         }
     }
     
-    pub fn add_pair_event(&mut self, time: f64, event: InternalEvent, first_key_set: &mut TightSet<EventKey>,
+    pub fn add_pair_event(&mut self, time: N64, event: InternalEvent, first_key_set: &mut TightSet<EventKey>,
         second_key_set: &mut TightSet<EventKey>)
     {
         if let Some(key) = self.new_event_key(time, true) {
@@ -127,24 +127,24 @@ impl EventManager {
         key_set.clear();
     }
     
-    fn new_event_key(&mut self, time: f64, for_pair: bool) -> Option<EventKey> {
-        if time == f64::INFINITY {
+    fn new_event_key(&mut self, time: N64, for_pair: bool) -> Option<EventKey> {
+        if time == N64::infinity() {
             None
         } else {
             let mut index = self.next_event_index;
             self.next_event_index += 1;
             assert!(index < PAIR_BASE, "illegal state");
             if for_pair { index += PAIR_BASE; }
-            let result = EventKey { time: n64(time), index: index };
+            let result = EventKey { time: time, index: index };
             Some(result)
         }
     }
     
-    pub fn peek_time(&self) -> f64 {
-        self.peek_key().map(|key| key.time()).unwrap_or(f64::INFINITY)
+    pub fn peek_time(&self) -> N64 {
+        self.peek_key().map(|key| key.time()).unwrap_or(N64::infinity())
     }
     
-    pub fn next<M: EventKeysMap>(&mut self, time: f64, map: &mut M) -> Option<InternalEvent> {
+    pub fn next<M: EventKeysMap>(&mut self, time: N64, map: &mut M) -> Option<InternalEvent> {
         if let Some(key) = self.peek_key() {
             if key.time() == time {
                 let event = self.events.remove(&key).unwrap();

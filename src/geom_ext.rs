@@ -14,7 +14,7 @@
 
 use std::cmp::Ordering;
 use geom::*;
-use util::n64;
+use noisy_float::prelude::*;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum Card {
@@ -44,10 +44,10 @@ static CARD_VALS: [Card; 4] = [Card::Bottom, Card::Left, Card::Top, Card::Right]
 impl Into<Vec2> for Card {
     fn into(self) -> Vec2 {
         match self {
-            Card::Bottom => Vec2::new(0.0, -1.0),
-            Card::Left => Vec2::new(-1.0, 0.0),
-            Card::Top => Vec2::new(0.0, 1.0),
-            Card::Right => Vec2::new(1.0, 0.0)
+            Card::Bottom => vec2_f(0.0, -1.0),
+            Card::Left => vec2_f(-1.0, 0.0),
+            Card::Top => vec2_f(0.0, 1.0),
+            Card::Right => vec2_f(1.0, 0.0)
         }
     }
 }
@@ -55,17 +55,17 @@ impl Into<Vec2> for Card {
 pub trait PlacedShapeExt {
     fn sector(&self, point: Vec2) -> Sector;
     fn corner(&self, sector: Sector) -> Vec2;
-    fn card_overlap(&self, src: &PlacedShape, card: Card) -> f64;
+    fn card_overlap(&self, src: &PlacedShape, card: Card) -> R64;
     fn is_zero(&self) -> bool;
     fn as_rect(&self) -> PlacedShape;
     fn bounding_box(&self, other: &PlacedShape) -> PlacedShape;
-    fn max_edge(&self) -> f64;
+    fn max_edge(&self) -> R64;
 }
 
 impl PlacedShapeExt for PlacedShape {
     fn sector(&self, point: Vec2) -> Sector {
-        let x = interval_sector(self.left(), self.right(), point.x());
-        let y = interval_sector(self.bottom(), self.top(), point.y());
+        let x = interval_sector(self.left(), self.right(), point.x);
+        let y = interval_sector(self.bottom(), self.top(), point.y);
         Sector::new(x, y)
     }
     
@@ -80,19 +80,19 @@ impl PlacedShapeExt for PlacedShape {
             Ordering::Greater => self.top(),
             Ordering::Equal => panic!("expected corner sector")
         };
-        Vec2::new(x, y)
+        vec2(x, y)
     }
     
-    fn card_overlap(&self, src: &PlacedShape, card: Card) -> f64 {
+    fn card_overlap(&self, src: &PlacedShape, card: Card) -> R64 {
         edge(src, card) + edge(self, card.flip())
     }
     
     fn is_zero(&self) -> bool {
-        self.pos == Vec2::zero() && self.shape.width() == 0.0 && self.shape.height() == 0.0
+        self.pos == Vec2::zero() && self.shape.dims() == Vec2::zero()
     }
     
     fn as_rect(&self) -> PlacedShape {
-        PlacedShape::new(self.pos, Shape::new_rect(self.shape.width(), self.shape.height()))
+        PlacedShape::new(self.pos, Shape::new_rect(self.shape.dims()))
     }
     
     fn bounding_box(&self, other: &PlacedShape) -> PlacedShape {
@@ -101,17 +101,17 @@ impl PlacedShapeExt for PlacedShape {
         let left = self.left().min(other.left());
         let bottom = self.bottom().min(other.bottom());
         
-        let shape = Shape::new_rect(right - left, top - bottom);
-        let pos = Vec2::new(left + 0.5*shape.width(), bottom + 0.5*shape.height());
+        let shape = Shape::new_rect(vec2(right - left, top - bottom));
+        let pos = vec2(left + shape.dims().x * 0.5, bottom + shape.dims().y * 0.5);
         PlacedShape::new(pos, shape)
     }
     
-    fn max_edge(&self) -> f64 {
-        Card::vals().iter().map(|&card| n64(edge(self, card).abs())).max().unwrap().into()
+    fn max_edge(&self) -> R64 {
+        Card::vals().iter().map(|&card| edge(self, card).abs()).max().unwrap().into()
     }
 }
 
-fn edge(shape: &PlacedShape, card: Card) -> f64 {
+fn edge(shape: &PlacedShape, card: Card) -> R64 {
     match card {
         Card::Bottom => -shape.bottom(),
         Card::Left => -shape.left(),
@@ -120,7 +120,7 @@ fn edge(shape: &PlacedShape, card: Card) -> f64 {
     }
 }
 
-fn interval_sector(left: f64, right: f64, val: f64) -> Ordering {
+fn interval_sector(left: R64, right: R64, val: R64) -> Ordering {
     if val < left {
         Ordering::Less
     } else if val > right {
