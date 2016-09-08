@@ -73,7 +73,7 @@ impl Hitbox {
     }
     
     fn advanced_shape(&self, time: N64) -> PlacedShape {
-        assert!(time <= HIGH_TIME, "requires time <= {}", HIGH_TIME);
+        assert!(time < HIGH_TIME, "requires time < {}", HIGH_TIME);
         self.shape + self.vel * r64(time.raw())
     }
     

@@ -16,7 +16,7 @@ use std::collections::BTreeMap;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use noisy_float::prelude::*;
-use core::HitboxId;
+use core::{HitboxId, HIGH_TIME};
 use util::{TightSet, OneOrTwo};
 
 const PAIR_BASE: u64 = 0x8000_0000_0000_0000;
@@ -67,6 +67,7 @@ pub trait EventKeysMap {
     fn event_keys_mut(&mut self, id: HitboxId) -> &mut TightSet<EventKey>;
 }
 
+//TODO don't add PanicSmallHitbox or PanicDurationPassed events to queue in optimized builds, instead check lazily...
 #[derive(Copy, Clone)]
 pub enum InternalEvent {
     PanicSmallHitbox(HitboxId),
@@ -128,7 +129,7 @@ impl EventManager {
     }
     
     fn new_event_key(&mut self, time: N64, for_pair: bool) -> Option<EventKey> {
-        if time == N64::infinity() {
+        if time >= HIGH_TIME {
             None
         } else {
             let mut index = self.next_event_index;
@@ -141,7 +142,7 @@ impl EventManager {
     }
     
     pub fn peek_time(&self) -> N64 {
-        self.peek_key().map(|key| key.time()).unwrap_or(N64::infinity())
+        self.peek_key().map_or(N64::infinity(), |key| key.time())
     }
     
     pub fn next<M: EventKeysMap>(&mut self, time: N64, map: &mut M) -> Option<InternalEvent> {
