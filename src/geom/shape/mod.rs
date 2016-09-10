@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use std::ops::{Add, Sub, Mul, Neg};
-use noisy_float::prelude::*;
+use float::*;
 use geom::{Vec2, DirVec2, vec2};
 
 mod normals;
@@ -35,6 +35,9 @@ pub struct Shape {
     kind: ShapeKind,
     dims: Vec2
 }
+
+#[cfg(feature = "noisy-floats")]
+impl Eq for Shape {}
 
 impl Shape {
     /// Constructs a new shape with the given `kind` and `dims` (width and height dimensions).
@@ -82,6 +85,7 @@ impl Shape {
     }
 }
 
+#[cfg(feature = "noisy-floats")]
 impl Mul<R64> for Shape {
     type Output = Shape;
     fn mul(self, rhs: R64) -> Shape {
@@ -127,6 +131,9 @@ pub struct PlacedShape {
     /// The shape.
     pub shape: Shape
 }
+
+#[cfg(feature = "noisy-floats")]
+impl Eq for PlacedShape {}
 
 impl PlacedShape {
     /// Constructs a new `PlacedShape` with the given `pos` and `shape`.
@@ -193,6 +200,7 @@ impl PlacedShape {
     }
 }
 
+#[cfg(feature = "noisy-floats")]
 impl Mul<R64> for PlacedShape {
     type Output = PlacedShape;
     fn mul(self, rhs: R64) -> PlacedShape {
@@ -230,7 +238,7 @@ impl Neg for PlacedShape {
 
 #[cfg(test)]
 mod tests {
-    use noisy_float::prelude::*;
+    use float::*;
     use geom::*;
 
     #[test]

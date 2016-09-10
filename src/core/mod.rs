@@ -21,7 +21,7 @@ pub use self::collider::*;
 
 use geom::*;
 use geom_ext::*;
-use noisy_float::prelude::*;
+use float::*;
 
 const HIGH_TIME: f64 = 1e50;
 
@@ -42,7 +42,7 @@ pub struct Hitbox {
     
     /// An upper-bound on the time until this hitbox will be updated by the user.
     ///
-    /// `N64::infinity()` may be used as a default, but using a lower value may
+    /// Infinity may be used as a default, but using a lower value may
     /// reduce the number of collisions that need to be checked.
     /// E.g. if you are updating the velocities of a hitbox once every second,
     /// then use a duration of one second when you update the hitbox.
@@ -50,6 +50,9 @@ pub struct Hitbox {
     /// `Collider` will panic if the duration is exceeded without update.
     pub duration: N64
 }
+
+#[cfg(feature = "noisy-floats")]
+impl Eq for Hitbox {}
 
 impl Hitbox {
     /// Constructs a new hitbox with the given `shape` and a `vel` of zero and `duration` of `f64::INFINITY`.
@@ -162,7 +165,7 @@ pub mod inter {
 
 #[cfg(test)]
 mod tests {
-    use noisy_float::prelude::*;
+    use float::*;
     use geom::*;
     use core::*;
     use std::f64;

@@ -14,7 +14,7 @@
 
 use std::collections::{hash_map, HashMap, HashSet};
 use std::cmp;
-use noisy_float::prelude::*;
+use float::*;
 use core::{HitboxId, Hitbox};
 use core::inter::Group;
 use geom_ext::PlacedShapeExt;

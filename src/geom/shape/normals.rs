@@ -14,12 +14,12 @@
 
 use geom::*;
 use geom_ext::*;
-use noisy_float::prelude::*;
+use float::*;
 
 pub fn rect_rect_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {
     let (card, overlap) = Card::vals().iter()
         .map(|&card| (card, dst.card_overlap(src, card)))
-        .min_by_key(|&(_, overlap)| overlap)
+        .min_by_key(|&(_, overlap)| r64_cmp(overlap))
         .unwrap();
     DirVec2::new(card.into(), overlap)
 }

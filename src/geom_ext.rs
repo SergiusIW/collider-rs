@@ -14,7 +14,7 @@
 
 use std::cmp::Ordering;
 use geom::*;
-use noisy_float::prelude::*;
+use float::*;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum Card {
@@ -107,7 +107,7 @@ impl PlacedShapeExt for PlacedShape {
     }
     
     fn max_edge(&self) -> R64 {
-        Card::vals().iter().map(|&card| edge(self, card).abs()).max().unwrap().into()
+        Card::vals().iter().map(|&card| r64_cmp(edge(self, card).abs())).max().unwrap().into()
     }
 }
 

@@ -15,7 +15,7 @@
 use std::collections::BTreeMap;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
-use noisy_float::prelude::*;
+use float::*;
 use core::{HitboxId, HIGH_TIME};
 use util::{TightSet, OneOrTwo};
 
@@ -58,7 +58,7 @@ impl Ord for EventKey {
         if self.time == other.time {
             self.index.cmp(&other.index)
         } else {
-            self.time.cmp(&other.time)
+            n64_cmp(self.time).cmp(&n64_cmp(other.time))
         }
     }
 }

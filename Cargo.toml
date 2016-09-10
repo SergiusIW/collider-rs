@@ -3,12 +3,15 @@ name = "collider"
 version = "0.1.2"
 authors = ["Matthew Michelotti <matthew@matthewmichelotti.com>"]
 description = "A library for continuous 2D collision detection for game developement"
-documentation = "http://www.matthewmichelotti.com/projects/collider/rustdoc/collider/"
+documentation = "https://docs.rs/collider/"
 homepage = "http://www.matthewmichelotti.com/projects/collider/"
 repository = "https://github.com/SergiusIW/collider-rs"
 readme = "README.md"
 keywords = ["collision", "detection", "continuous", "2D", "game"]
 license = "Apache-2.0"
 
+[features]
+noisy-floats = ["noisy_float"]
+
 [dependencies]
-noisy_float = "^0.1.1"
+noisy_float = { version = "^0.1.1", optional = true }

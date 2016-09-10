@@ -14,7 +14,7 @@
 
 use std::collections::HashMap;
 use std::mem;
-use noisy_float::prelude::*;
+use float::*;
 use core::events::{EventManager, EventKey, EventKeysMap, InternalEvent};
 use core::inter::{Interactivity, DefaultInteractivity, Group};
 use core::{Hitbox, HitboxId, HIGH_TIME};

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use std::ops::{Add, Sub, Mul, Neg};
-use noisy_float::prelude::*;
+use float::*;
 
 /// A 2-D Cartesian vector using finite `f64` values.
 #[derive(PartialEq, Copy, Clone, Debug, Default)]
@@ -23,6 +23,9 @@ pub struct Vec2 {
     /// The y-coordinate.
     pub y: R64
 }
+
+#[cfg(feature = "noisy-floats")]
+impl Eq for Vec2 {}
 
 impl Vec2 {
     /// Constructs a vector with the given `x` and `y` coordinates.
@@ -52,7 +55,7 @@ impl Vec2 {
     }
     
     /// Returns a vector in the same direction as `self` but with length (approximately) `1.0`,
-    /// or `None` if `self.len() == 0.0'.
+    /// or `None` if `self.len() == 0.0`.
     pub fn normalize(&self) -> Option<Vec2> {
         let len = self.len();
         if len == 0.0 {
@@ -96,6 +99,7 @@ impl Vec2 {
     }
 }
 
+#[cfg(feature = "noisy-floats")]
 impl Mul<R64> for Vec2 {
     type Output = Vec2;
     fn mul(self, rhs: R64) -> Vec2 {
@@ -138,11 +142,14 @@ impl Neg for Vec2 {
     }
 }
 
+/// Shorthand for invoking the `Vec2` constructor.
 #[inline]
 pub fn vec2(x: R64, y: R64) -> Vec2 {
     Vec2::new(x, y)
 }
 
+/// Shorthand for invoking the `Vec2` constructor from raw floating point numbers.
+/// These floats will be wrapped in `R64` instances.
 #[inline]
 pub fn vec2_f(x: f64, y: f64) -> Vec2 {
     Vec2::new(r64(x), r64(y))
@@ -161,6 +168,9 @@ pub struct DirVec2 {
     dir: Vec2,
     len: R64
 }
+
+#[cfg(feature = "noisy-floats")]
+impl Eq for DirVec2 {}
 
 impl DirVec2 {
     /// Constructs a vector with the given direction `dir` and length `len`.

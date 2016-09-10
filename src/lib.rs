@@ -41,6 +41,9 @@
 //! since the hitboxes may be updated less frequently and still maintain a
 //! smooth appearance over time.
 //!
+//! TODO update docs to discuss noisy-floats feature, and fix/improve doc test below
+//! TODO when Rust 1.12 is released, change N64/R64 type aliases in the public API to macros, so that docs will just say f64 when compiled without noisy-floats
+//!
 //! #Example
 //! ```
 //! extern crate collider;
@@ -71,8 +74,13 @@
 //! assert!(collider.next() == Some((Event::Collide, 0, 1)));
 //! ```
 
+//TODO update README.md
+//TODO update docs
+
+#[cfg(feature = "noisy-floats")]
 extern crate noisy_float;
 
+mod float;
 pub mod geom;
 mod geom_ext;
 mod util;
@@ -85,7 +93,7 @@ pub use core::*;
 mod tests {
     use std::f64;
     use std::mem;
-    use noisy_float::prelude::*;
+    use float::*;
     use super::{Collider, Hitbox, Event};
     use geom::{PlacedShape, Shape, vec2_f};
     

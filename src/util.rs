@@ -15,7 +15,7 @@
 use std::collections::{HashSet, hash_set};
 use std::borrow::Borrow;
 use std::hash::Hash;
-use noisy_float::prelude::*;
+use float::*;
 
 pub use self::one_or_two::OneOrTwo;
 
@@ -119,7 +119,7 @@ mod one_or_two {
 
 #[cfg(test)]
 mod tests {
-    use noisy_float::prelude::*;
+    use float::*;
     use super::*;
     
     #[test]

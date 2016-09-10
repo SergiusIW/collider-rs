@@ -9,7 +9,7 @@ As my focus has shifted from Java to Rust, I ported the library.
 
 ### Documentation
 
-Documentation for Collider can be found [here](http://www.matthewmichelotti.com/projects/collider/rustdoc/collider/).
+Documentation for Collider can be found [here](https://docs.rs/collider/).
 
 ### Cargo
 
