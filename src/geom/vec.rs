@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::ops::{Add, Sub, Mul, Neg};
+use std::ops::{Add, Sub, Mul, Neg, AddAssign, SubAssign, MulAssign};
 use float::*;
 
 /// A 2-D Cartesian vector using finite `f64` values.
@@ -107,10 +107,25 @@ impl Mul<R64> for Vec2 {
     }
 }
 
+#[cfg(feature = "noisy-floats")]
+impl MulAssign<R64> for Vec2 {
+    fn mul_assign(&mut self, rhs: R64) {
+        self.x *= rhs;
+        self.y *= rhs;
+    }
+}
+
 impl Mul<f64> for Vec2 {
     type Output = Vec2;
     fn mul(self, rhs: f64) -> Vec2 {
         Vec2::new(self.x * rhs, self.y * rhs)
+    }
+}
+
+impl MulAssign<f64> for Vec2 {
+    fn mul_assign(&mut self, rhs: f64) {
+        self.x *= rhs;
+        self.y *= rhs;
     }
 }
 
@@ -128,10 +143,24 @@ impl Add for Vec2 {
     }
 }
 
+impl AddAssign for Vec2 {
+    fn add_assign(&mut self, rhs: Vec2) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+    }
+}
+
 impl Sub for Vec2 {
     type Output = Vec2;
     fn sub(self, rhs: Vec2) -> Vec2 {
         Vec2::new(self.x - rhs.x, self.y - rhs.y)
+    }
+}
+
+impl SubAssign for Vec2 {
+    fn sub_assign(&mut self, rhs: Vec2) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
     }
 }
 

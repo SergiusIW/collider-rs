@@ -41,37 +41,47 @@
 //! since the hitboxes may be updated less frequently and still maintain a
 //! smooth appearance over time.
 //!
-//! TODO update docs to discuss noisy-floats feature, and fix/improve doc test below
+//! TODO update docs to discuss noisy-floats feature
 //! TODO when Rust 1.12 is released, change N64/R64 type aliases in the public API to macros, so that docs will just say f64 when compiled without noisy-floats
 //!
 //! #Example
 //! ```
-//! extern crate collider;
-//! extern crate noisy_float;
-//!
 //! use collider::{Collider, Hitbox, Event};
-//! use collider::geom::{PlacedShape, Shape, vec2_f};
-//! use noisy_float::prelude::*;
-//! 
-//! let mut collider: Collider = Collider::new(r64(4.0), r64(0.01));
+//! use collider::geom::{PlacedShape, Shape, vec2};
 //!
-//! let mut hitbox = Hitbox::new(PlacedShape::new(vec2_f(-10.0, 0.0), Shape::new_square(r64(2.0))));
-//! hitbox.vel.pos = vec2_f(1.0, 0.0);
+//! let mut collider: Collider = Collider::new(4.0, 0.01);
+//!
+//! let mut hitbox = Hitbox::new(PlacedShape::new(vec2(-10.0, 0.0), Shape::new_square(2.0)));
+//! hitbox.vel.pos = vec2(1.0, 0.0);
 //! collider.add_hitbox(0, hitbox);
-//! 
-//! let mut hitbox = Hitbox::new(PlacedShape::new(vec2_f(10.0, 0.0), Shape::new_circle(r64(2.0))));
-//! hitbox.vel.pos = vec2_f(-1.0, 0.0);
+//!
+//! let mut hitbox = Hitbox::new(PlacedShape::new(vec2(10.0, 0.0), Shape::new_square(2.0)));
+//! hitbox.vel.pos = vec2(-1.0, 0.0);
 //! collider.add_hitbox(1, hitbox);
 //!
-//! let mut time = n64(0.0);
-//! while time < 9.0 {
-//!     assert!(collider.next() == None);
-//!     let timestep = collider.time_until_next();
+//! let mut clock = 0.0;
+//! while clock < 20.0 {
+//!     let timestep = collider.time_until_next().min(20.0 - clock);
+//!     clock += timestep;
 //!     collider.advance(timestep);
-//!     time += timestep;
+//!     if let Some((event, id1, id2)) = collider.next() {
+//!         println!("{:?} between hitbox {} and hitbox {} at time {}.", event, id1, id2, clock);
+//!
+//!         if event == Event::Collide {
+//!             println!("Speed of collided hitboxes is halved.");
+//!             for id in [id1, id2].iter().cloned() {
+//!                 let mut hitbox = collider.get_hitbox(id);
+//!                 hitbox.vel.pos *= 0.5;
+//!                 collider.update_hitbox(id, hitbox);
+//!             }
+//!         }
+//!     }
 //! }
-//! assert!(time == 9.0);
-//! assert!(collider.next() == Some((Event::Collide, 0, 1)));
+//!
+//! //the above loop prints the following events:
+//! //  Collide between hitbox 0 and hitbox 1 at time 9.
+//! //  Speed of collided hitboxes is halved.
+//! //  Separate between hitbox 0 and hitbox 1 at time 13.01.
 //! ```
 
 //TODO update README.md
