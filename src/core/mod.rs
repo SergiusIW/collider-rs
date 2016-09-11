@@ -42,12 +42,12 @@ pub struct Hitbox {
     
     /// An upper-bound on the time until this hitbox will be updated by the user.
     ///
-    /// Infinity may be used as a default, but using a lower value may
+    /// This is an advanced feature for efficiency and does not impact the results.
+    /// Infinity is used as the default, but using a lower value may
     /// reduce the number of collisions that need to be checked.
-    /// E.g. if you are updating the velocities of a hitbox once every second,
-    /// then use a duration of one second when you update the hitbox.
     ///
-    /// `Collider` will panic if the duration is exceeded without update.
+    /// `Collider` will panic if the duration is exceeded without update,
+    /// at least in unoptimized builds.
     pub duration: N64
 }
 
@@ -55,7 +55,7 @@ pub struct Hitbox {
 impl Eq for Hitbox {}
 
 impl Hitbox {
-    /// Constructs a new hitbox with the given `shape` and a `vel` of zero and `duration` of `f64::INFINITY`.
+    /// Constructs a new hitbox with the given `shape` and a `vel` of zero and `duration` of infinity.
     pub fn new(shape: PlacedShape) -> Hitbox {
         Hitbox {
             shape : shape,

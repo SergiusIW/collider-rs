@@ -21,7 +21,7 @@ use core::{Hitbox, HitboxId, HIGH_TIME};
 use core::grid::Grid;
 use util::TightSet;
 
-/// A structure that tracks hitboxes and returns collision/separation events.
+/// A structure that tracks hitboxes and returns collide/separate events.
 pub struct Collider<I: Interactivity = DefaultInteractivity> {
     hitboxes: HashMap<HitboxId, HitboxInfo<I>>,
     time: N64,
@@ -71,7 +71,7 @@ impl <I: Interactivity> Collider<I> {
     /// Regardless, after `self.next()` has been called repeatedly until it
     /// returns `None`, then `self.time_until_next()` will be greater than `0.0` again.
     ///
-    /// This is a fast constant-time operation.
+    /// This is a fast constant-time operation.  The result may be infinity.
     pub fn time_until_next(&self) -> N64 {
         self.events.peek_time() - self.time
     }
@@ -89,12 +89,12 @@ impl <I: Interactivity> Collider<I> {
         assert!(self.time < HIGH_TIME, "time must not exceed {}", HIGH_TIME);
     }
     
-    /// Processes and returns the next `Collision` or `Separation` event,
+    /// Processes and returns the next `Collide` or `Separate` event,
     /// or returns `None` if there are no more events that occured at the given time
     /// (although an internal event might have been processed if `None` is returned).
     /// Will always return `None` if `self.time_until_next() > 0.0`.
     ///
-    /// The returned value is a tuple, denoting the type of event (`Collision` or `Separation`)
+    /// The returned value is a tuple, denoting the type of event (`Collide` or `Separate`)
     /// and the two `HitboxId`s involved, in increasing order.
     pub fn next(&mut self) -> Option<(Event, HitboxId, HitboxId)> {
         while let Some(event) = self.events.next(self.time, &mut self.hitboxes) {
@@ -149,7 +149,7 @@ impl <I: Interactivity> Collider<I> {
     /// Adds a new hitbox to the collider.
     /// The `id` may be used to track the hitbox over time (will panic if there is an id clash).
     /// `hitbox` is the initial state of the hitbox.
-    /// `interactivity` determines which other hitboxes should be checked for `Collision`/`Separation` events.
+    /// `interactivity` determines which other hitboxes should be checked for `Collide`/`Separate` events.
     pub fn add_hitbox_with_interactivity(&mut self, id: HitboxId, hitbox: Hitbox, interactivity: I) {
         let hitbox_info = HitboxInfo::new(hitbox, interactivity, self.time);
         assert!(self.hitboxes.insert(id, hitbox_info).is_none(), "hitbox id {} already in use", id);
@@ -172,7 +172,7 @@ impl <I: Interactivity> Collider<I> {
     /// provided by `hitbox`.
     ///
     /// If this hitbox had collided (and not separated) with another htibox and
-    /// still overlaps after this update, then no new `Collision`/`Separation` events
+    /// still overlaps after this update, then no new `Collide`/`Separate` events
     /// are generated immediately.
     pub fn update_hitbox(&mut self, id: HitboxId, hitbox: Hitbox) {
         self.internal_update_hitbox(id, Some(hitbox), None, Phase::Update);
