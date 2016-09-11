@@ -44,10 +44,10 @@ static CARD_VALS: [Card; 4] = [Card::Bottom, Card::Left, Card::Top, Card::Right]
 impl Into<Vec2> for Card {
     fn into(self) -> Vec2 {
         match self {
-            Card::Bottom => vec2_f(0.0, -1.0),
-            Card::Left => vec2_f(-1.0, 0.0),
-            Card::Top => vec2_f(0.0, 1.0),
-            Card::Right => vec2_f(1.0, 0.0)
+            Card::Bottom => vec2(r64(0.0), r64(-1.0)),
+            Card::Left => vec2(r64(-1.0), r64(0.0)),
+            Card::Top => vec2(r64(0.0), r64(1.0)),
+            Card::Right => vec2(r64(1.0), r64(0.0))
         }
     }
 }

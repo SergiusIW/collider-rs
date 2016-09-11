@@ -151,6 +151,7 @@ pub fn vec2(x: R64, y: R64) -> Vec2 {
 /// Shorthand for invoking the `Vec2` constructor from raw floating point numbers.
 /// These floats will be wrapped in `R64` instances.
 #[inline]
+#[cfg(any(feature = "noisy-floats", test))]
 pub fn vec2_f(x: f64, y: f64) -> Vec2 {
     Vec2::new(r64(x), r64(y))
 }
