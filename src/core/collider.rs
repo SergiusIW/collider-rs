@@ -137,9 +137,11 @@ impl <I: Interactivity> Collider<I> {
                 self.internal_update_hitbox(id, None, None, Phase::Update);
                 None
             },
+            #[cfg(debug_assertions)]
             InternalEvent::PanicSmallHitbox(id) => {
                 panic!("hitbox {} became too small", id)
             },
+            #[cfg(debug_assertions)]
             InternalEvent::PanicDurationPassed(id) => {
                 panic!("hitbox {} was not updated before duration passed", id)
             }
@@ -271,6 +273,7 @@ impl <I: Interactivity> Collider<I> {
         hitbox_info.overlaps.clear();
     }
     
+    #[cfg(debug_assertions)] 
     fn solitaire_event_check(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo<I>, has_group: bool) {
         hitbox_info.pub_duration = hitbox_info.hitbox.duration;
         let mut result = (self.grid.cell_period(&hitbox_info.hitbox, has_group), InternalEvent::Reiterate(id));
@@ -278,6 +281,14 @@ impl <I: Interactivity> Collider<I> {
         if delay < result.0 { result = (delay, InternalEvent::PanicDurationPassed(id)); }
         let delay = hitbox_info.hitbox.time_until_too_small(self.padding);
         if delay < result.0 { result = (delay, InternalEvent::PanicSmallHitbox(id)); }
+        hitbox_info.hitbox.duration = result.0;
+        self.events.add_solitaire_event(self.time + result.0, result.1, &mut hitbox_info.event_keys);
+    }
+    
+    #[cfg(not(debug_assertions))] 
+    fn solitaire_event_check(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo<I>, has_group: bool) {
+        hitbox_info.pub_duration = hitbox_info.hitbox.duration;
+        let result = (self.grid.cell_period(&hitbox_info.hitbox, has_group), InternalEvent::Reiterate(id));
         hitbox_info.hitbox.duration = result.0;
         self.events.add_solitaire_event(self.time + result.0, result.1, &mut hitbox_info.event_keys);
     }

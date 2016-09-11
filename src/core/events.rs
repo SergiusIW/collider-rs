@@ -70,8 +70,8 @@ pub trait EventKeysMap {
 //TODO don't add PanicSmallHitbox or PanicDurationPassed events to queue in optimized builds, instead check lazily...
 #[derive(Copy, Clone)]
 pub enum InternalEvent {
-    PanicSmallHitbox(HitboxId),
-    PanicDurationPassed(HitboxId),
+    #[cfg(debug_assertions)] PanicSmallHitbox(HitboxId),
+    #[cfg(debug_assertions)] PanicDurationPassed(HitboxId),
     Reiterate(HitboxId),
     Collide(HitboxId, HitboxId),
     Separate(HitboxId, HitboxId)
@@ -84,8 +84,8 @@ impl InternalEvent {
     
     fn involved_hitbox_ids(self) -> OneOrTwo<HitboxId> {
         match self {
-            InternalEvent::PanicSmallHitbox(id) | InternalEvent::PanicDurationPassed(id)
-                | InternalEvent::Reiterate(id) => OneOrTwo::One(id),
+            #[cfg(debug_assertions)] InternalEvent::PanicSmallHitbox(id) | InternalEvent::PanicDurationPassed(id) => OneOrTwo::One(id),
+            InternalEvent::Reiterate(id) => OneOrTwo::One(id),
             InternalEvent::Collide(a, b) | InternalEvent::Separate(a, b) => OneOrTwo::Two(a, b)
         }
     }

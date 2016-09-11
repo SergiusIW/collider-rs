@@ -32,12 +32,20 @@ pub type HitboxId = u64;
 #[derive(PartialEq, Clone, Debug)]
 pub struct Hitbox {
     /// The placed shape `shape` at the given point in time.
+    ///
+    /// The width and height of the shape must be greater than `padding` (in the `Collider` constructor)
+    /// at all times.
     pub shape: PlacedShape,
     
     /// A velocity that describes how the shape is changing over time.
     ///
     /// The `vel` may include the velocity of the width and height of the `shape` as
     /// well as the velocity of the position.
+    ///
+    /// Since the width and height of the shape is greater than `padding` at all times,
+    /// if a shape velocity is set that decreases the dimensions of the shape over time,
+    /// then the user is responsible for ensuring that the shape will not decrease below this threshold.
+    /// Collider will catch such mistakes in unoptimized builds.
     pub vel: PlacedShape,
     
     /// An upper-bound on the time until this hitbox will be updated by the user.
@@ -46,10 +54,14 @@ pub struct Hitbox {
     /// Infinity is used as the default, but using a lower value may
     /// reduce the number of collisions that need to be checked.
     ///
-    /// `Collider` will panic if the duration is exceeded without update,
-    /// at least in unoptimized builds.
+    /// Collider will panic if the duration is exceeded without update,
+    /// at least in unoptimized builds.  It is ultimately the user's responsibility
+    /// to ensure that durations are not exceeded, but collider will catch such mistakes
+    /// in unoptimized builds.
     pub duration: N64
 }
+
+//TODO invoke hitbox.validate() in more places so that inconsistencies are still found in optimized builds, just found later
 
 #[cfg(feature = "noisy-floats")]
 impl Eq for Hitbox {}
@@ -107,6 +119,7 @@ impl Hitbox {
         assert!(self.shape.dims().x >= min_size && self.shape.dims().y >= min_size, "shape width/height must be at least {}", min_size);
     }
     
+    #[cfg(debug_assertions)]
     fn time_until_too_small(&self, min_size: R64) -> N64 {
         let min_size = min_size * 0.9;
         assert!(self.shape.dims().x > min_size && self.shape.dims().y > min_size, "illegal state");
