@@ -119,7 +119,6 @@ impl Hitbox {
         assert!(self.shape.dims().x >= min_size && self.shape.dims().y >= min_size, "shape width/height must be at least {}", min_size);
     }
     
-    #[cfg(debug_assertions)]
     fn time_until_too_small(&self, min_size: R64) -> N64 {
         let min_size = min_size * 0.9;
         assert!(self.shape.dims().x > min_size && self.shape.dims().y > min_size, "illegal state");

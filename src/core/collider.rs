@@ -288,9 +288,13 @@ impl <I: Interactivity> Collider<I> {
     #[cfg(not(debug_assertions))] 
     fn solitaire_event_check(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo<I>, has_group: bool) {
         hitbox_info.pub_duration = hitbox_info.hitbox.duration;
-        let result = (self.grid.cell_period(&hitbox_info.hitbox, has_group), InternalEvent::Reiterate(id));
+        let mut result = (self.grid.cell_period(&hitbox_info.hitbox, has_group), true);
+        let delay = hitbox_info.hitbox.duration;
+        if delay < result.0 { result = (delay, false); }
+        let delay = hitbox_info.hitbox.time_until_too_small(self.padding);
+        if delay < result.0 { result = (delay, false); }
         hitbox_info.hitbox.duration = result.0;
-        self.events.add_solitaire_event(self.time + result.0, result.1, &mut hitbox_info.event_keys);
+        if result.1 { self.events.add_solitaire_event(self.time + result.0, InternalEvent::Reiterate(id), &mut hitbox_info.event_keys); }
     }
 }
 

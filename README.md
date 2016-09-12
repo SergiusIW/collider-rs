@@ -46,7 +46,7 @@ types from the `noisy_float` crate in place of `f64` types.
 If collider is not built with this feature, it is the user's responsibility to ensure
 that they do not do anything that will result in improper floating point overflow or NaN.
 For instructions for building a crate with a conditional feature,
-see http://doc.crates.io/specifying-dependencies.html.
+see http://doc.crates.io/specifying-dependencies.html#choosing-features.
 
 (Note: there is currently a doc error where the `f64` values are replaced with `R64` and
 `N64`, even when collider isn't built with `noisy-floats`.  This is because collider
@@ -55,7 +55,7 @@ pretend any `R64` or `N64` is actually `f64` in the docs.  This will be fixed wh
 1.12 is released and we can use type macros.)
 
 ### Example
-```
+```rust
 use collider::{Collider, Hitbox, Event};
 use collider::geom::{PlacedShape, Shape, vec2};
 

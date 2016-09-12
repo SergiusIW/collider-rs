@@ -46,7 +46,7 @@
 //! If collider is not built with this feature, it is the user's responsibility to ensure
 //! that they do not do anything that will result in improper floating point overflow or NaN.
 //! For instructions for building a crate with a conditional feature,
-//! see http://doc.crates.io/specifying-dependencies.html.
+//! see http://doc.crates.io/specifying-dependencies.html#choosing-features.
 //!
 //! (Note: there is currently a doc error where the `f64` values are replaced with `R64` and
 //! `N64`, even when collider isn't built with `noisy-floats`.  This is because collider

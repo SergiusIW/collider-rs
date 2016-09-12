@@ -67,7 +67,6 @@ pub trait EventKeysMap {
     fn event_keys_mut(&mut self, id: HitboxId) -> &mut TightSet<EventKey>;
 }
 
-//TODO don't add PanicSmallHitbox or PanicDurationPassed events to queue in optimized builds, instead check lazily...
 #[derive(Copy, Clone)]
 pub enum InternalEvent {
     #[cfg(debug_assertions)] PanicSmallHitbox(HitboxId),
