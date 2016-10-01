@@ -228,8 +228,8 @@ impl DirVec2 {
     }
 }
 
-impl Into<Vec2> for DirVec2 {
-    fn into(self) -> Vec2 {
-        Vec2::new(self.dir().x*self.len(), self.dir().y*self.len())
+impl From<DirVec2> for Vec2 {
+    fn from(dir_vec: DirVec2) -> Vec2 {
+        Vec2::new(dir_vec.dir().x * dir_vec.len(), dir_vec.dir().y * dir_vec.len())
     }
 }
