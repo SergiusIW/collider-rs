@@ -52,7 +52,7 @@
 //! `N64`, even when collider isn't built with `noisy-floats`.  This is because collider
 //! is internally using a type alias to handle the different compilation modes.  For now, just
 //! pretend any `R64` or `N64` is actually `f64` in the docs.  This will be fixed when Rust
-//! 1.12 is released and we can use type macros.)
+//! 1.13 is released and we can use type macros.)
 //!
 //! #Example
 //! ```
@@ -94,7 +94,7 @@
 //! //  Separate between hitbox 0 and hitbox 1 at time 13.01.
 //! ```
 
-//TODO when Rust 1.12 is released, change N64/R64 type aliases in the public API to macros, so that docs will just say f64 when compiled without noisy-floats, and update docs
+//TODO when Rust 1.13 is released, change N64/R64 type aliases in the public API to macros, so that docs will just say f64 when compiled without noisy-floats, and update docs
 
 #[cfg(feature = "noisy-floats")]
 extern crate noisy_float;

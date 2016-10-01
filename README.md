@@ -11,7 +11,7 @@ The Rust crate for this library can be found [here](https://crates.io/crates/col
 
 ### Documentation
 
-Documentation for Collider can be found [here](https://docs.rs/collider/).
+Documentation for Collider can be found [here](http://www.matthewmichelotti.com/projects/collider/rustdoc/collider/).
 
 ### Description
 
