@@ -56,8 +56,8 @@ pub struct Hitbox {
     ///
     /// Collider will panic if the duration is exceeded without update,
     /// at least in unoptimized builds.  It is ultimately the user's responsibility
-    /// to ensure that durations are not exceeded, but collider will catch such mistakes
-    /// in unoptimized builds.
+    /// to ensure that durations are not exceeded (up to rounding error),
+    /// but collider will catch such mistakes in unoptimized builds.
     pub duration: N64
 }
 
@@ -82,8 +82,7 @@ impl Hitbox {
         if delta != 0.0 {
             self.shape = self.advanced_shape(delta);
             let end_time = orig_time + self.duration;
-            assert!(new_time <= end_time, "tried to advance Hitbox beyond its duration");
-            self.duration = end_time - new_time;
+            self.duration = (end_time - new_time).max(n64(0.0));
         }
     }
     

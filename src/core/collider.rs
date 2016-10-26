@@ -84,8 +84,14 @@ impl <I: Interactivity> Collider<I> {
     /// fast constant-time operation.
     pub fn advance(&mut self, time: N64) {
         assert!(time >= 0.0, "time must be non-negative");
-        self.time += time;
-        assert!(self.time <= self.events.peek_time(), "time must not exceed time_until_next()");
+        let event_time = self.events.peek_time();
+        let time_until_next = event_time - self.time;
+        assert!(time <= time_until_next, "time must not exceed time_until_next()");
+        if time == time_until_next {
+            self.time = event_time;
+        } else {
+            self.time = (self.time + time).min(event_time);
+        }
         assert!(self.time < HIGH_TIME, "time must not exceed {}", HIGH_TIME);
     }
     
@@ -273,11 +279,11 @@ impl <I: Interactivity> Collider<I> {
         hitbox_info.overlaps.clear();
     }
     
-    #[cfg(debug_assertions)] 
+    #[cfg(debug_assertions)]
     fn solitaire_event_check(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo<I>, has_group: bool) {
         hitbox_info.pub_duration = hitbox_info.hitbox.duration;
         let mut result = (self.grid.cell_period(&hitbox_info.hitbox, has_group), InternalEvent::Reiterate(id));
-        let delay = hitbox_info.hitbox.duration;
+        let delay = hitbox_info.hitbox.duration * 1.01;
         if delay < result.0 { result = (delay, InternalEvent::PanicDurationPassed(id)); }
         let delay = hitbox_info.hitbox.time_until_too_small(self.padding);
         if delay < result.0 { result = (delay, InternalEvent::PanicSmallHitbox(id)); }
@@ -285,11 +291,11 @@ impl <I: Interactivity> Collider<I> {
         self.events.add_solitaire_event(self.time + result.0, result.1, &mut hitbox_info.event_keys);
     }
     
-    #[cfg(not(debug_assertions))] 
+    #[cfg(not(debug_assertions))]
     fn solitaire_event_check(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo<I>, has_group: bool) {
         hitbox_info.pub_duration = hitbox_info.hitbox.duration;
         let mut result = (self.grid.cell_period(&hitbox_info.hitbox, has_group), true);
-        let delay = hitbox_info.hitbox.duration;
+        let delay = hitbox_info.hitbox.duration * 1.01;
         if delay < result.0 { result = (delay, false); }
         let delay = hitbox_info.hitbox.time_until_too_small(self.padding);
         if delay < result.0 { result = (delay, false); }
