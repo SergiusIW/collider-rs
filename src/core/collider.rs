@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
+use fnv::FnvHashMap;
 use std::mem;
 use float::*;
 use core::events::{EventManager, EventKey, EventKeysMap, InternalEvent};
@@ -23,7 +23,7 @@ use util::TightSet;
 
 /// A structure that tracks hitboxes and returns collide/separate events.
 pub struct Collider<I: Interactivity = DefaultInteractivity> {
-    hitboxes: HashMap<HitboxId, HitboxInfo<I>>,
+    hitboxes: FnvHashMap<HitboxId, HitboxInfo<I>>,
     time: N64,
     grid: Grid,
     padding: R64,
@@ -56,7 +56,7 @@ impl <I: Interactivity> Collider<I> {
         assert!(cell_width > padding, "requires cell_width > padding");
         assert!(padding > 0.0, "requires padding > 0.0");
         Collider {
-            hitboxes : HashMap::new(),
+            hitboxes : FnvHashMap::default(),
             time : n64(0.0),
             grid : Grid::new(cell_width),
             padding : padding,
@@ -304,7 +304,7 @@ impl <I: Interactivity> Collider<I> {
     }
 }
 
-impl <I: Interactivity> EventKeysMap for HashMap<HitboxId, HitboxInfo<I>> {
+impl <I: Interactivity> EventKeysMap for FnvHashMap<HitboxId, HitboxInfo<I>> {
     fn event_keys_mut(&mut self, id: HitboxId) -> &mut TightSet<EventKey> {
         &mut self.get_mut(&id).unwrap().event_keys
     }

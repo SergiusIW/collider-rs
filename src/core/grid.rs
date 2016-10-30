@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::{hash_map, HashMap, HashSet};
+use std::collections::hash_map;
+use fnv::{FnvHashMap, FnvHashSet};
 use std::cmp;
 use float::*;
 use core::{HitboxId, Hitbox};
@@ -42,13 +43,13 @@ impl GridArea {
 }
 
 pub struct Grid {
-    map: HashMap<GridKey, TightSet<HitboxId>>,
+    map: FnvHashMap<GridKey, TightSet<HitboxId>>,
     cell_width: R64
 }
 
 impl Grid {
     pub fn new(cell_width: R64) -> Grid {
-        Grid { map : HashMap::new(), cell_width: cell_width }
+        Grid { map : FnvHashMap::default(), cell_width: cell_width }
     }
 
     pub fn cell_period(&self, hitbox: &Hitbox, has_group: bool) -> N64 {
@@ -65,7 +66,7 @@ impl Grid {
     }
     
     pub fn update_hitbox(&mut self, hitbox_id: HitboxId, old_hitbox: (&Hitbox, Option<Group>),
-                         new_hitbox: (&Hitbox, Option<Group>), groups: &[Group]) -> Option<HashSet<HitboxId>>
+                         new_hitbox: (&Hitbox, Option<Group>), groups: &[Group]) -> Option<FnvHashSet<HitboxId>>
     {
         let (old_hitbox, old_group) = old_hitbox;
         let (new_hitbox, new_group) = new_hitbox;
@@ -88,8 +89,8 @@ impl Grid {
         })
     }
 
-    fn overlapping_ids(&self, hitbox_id: HitboxId, rect: IndexRect, groups: &[Group]) -> HashSet<HitboxId> {
-        let mut result = HashSet::new();
+    fn overlapping_ids(&self, hitbox_id: HitboxId, rect: IndexRect, groups: &[Group]) -> FnvHashSet<HitboxId> {
+        let mut result = FnvHashSet::default();
         for &group in groups {
             for coord in rect.iter() {
                 let key = GridKey { coord : coord, group : group };

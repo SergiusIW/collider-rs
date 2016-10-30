@@ -98,6 +98,7 @@
 
 #[cfg(feature = "noisy-floats")]
 extern crate noisy_float;
+extern crate fnv;
 
 mod float;
 pub mod geom;
