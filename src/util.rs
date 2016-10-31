@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::{HashSet, hash_set};
+use std::collections::{hash_set, HashSet};
+use fnv::FnvHashSet;
 use std::borrow::Borrow;
 use std::hash::Hash;
 use float::*;
@@ -34,12 +35,12 @@ const MIN_TIGHT_SET_CAPACITY: usize = 4;
 
 #[derive(Clone)]
 pub struct TightSet<T: Hash + Eq> {
-    set: HashSet<T>
+    set: FnvHashSet<T>
 }
 
 impl <T: Hash + Eq> TightSet<T> {
     pub fn new() -> TightSet<T> {
-        TightSet { set : HashSet::with_capacity(MIN_TIGHT_SET_CAPACITY) }
+        TightSet { set : HashSet::with_capacity_and_hasher(MIN_TIGHT_SET_CAPACITY, Default::default()) }
     }
 
     pub fn insert(&mut self, value: T) -> bool {
@@ -74,7 +75,7 @@ impl <T: Hash + Eq> TightSet<T> {
         if self.set.capacity() <= MIN_TIGHT_SET_CAPACITY {
             self.set.clear();
         } else {
-            self.set = HashSet::with_capacity(MIN_TIGHT_SET_CAPACITY);
+            self.set = FnvHashSet::with_capacity_and_hasher(MIN_TIGHT_SET_CAPACITY, Default::default());
         }
     }
 }
