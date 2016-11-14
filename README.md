@@ -43,16 +43,10 @@ smooth appearance over time.
 
 Collider may be built with the `noisy-floats` feature, which will use the `R64` and `N64`
 types from the `noisy_float` crate in place of `f64` types.
-If collider is not built with this feature, it is the user's responsibility to ensure
+In either case, it is ultimately the user's responsibility to ensure
 that they do not do anything that will result in improper floating point overflow or NaN.
 For instructions for building a crate with a conditional feature,
 see http://doc.crates.io/specifying-dependencies.html#choosing-features.
-
-(Note: there is currently a doc error where the `f64` values are replaced with `R64` and
-`N64`, even when collider isn't built with `noisy-floats`.  This is because collider
-is internally using a type alias to handle the different compilation modes.  For now, just
-pretend any `R64` or `N64` is actually `f64` in the docs.  This will be fixed when Rust
-1.12 is released and we can use type macros.)
 
 ### Example
 ```rust
@@ -69,13 +63,11 @@ let mut hitbox = Hitbox::new(PlacedShape::new(vec2(10.0, 0.0), Shape::new_square
 hitbox.vel.pos = vec2(-1.0, 0.0);
 collider.add_hitbox(1, hitbox);
 
-let mut clock = 0.0;
-while clock < 20.0 {
-    let timestep = collider.time_until_next().min(20.0 - clock);
-    clock += timestep;
-    collider.advance(timestep);
+while collider.time() < 20.0 {
+    let time = collider.next_time().min(20.0);
+    collider.set_time(time);
     if let Some((event, id1, id2)) = collider.next() {
-        println!("{:?} between hitbox {} and hitbox {} at time {}.", event, id1, id2, clock);
+        println!("{:?} between hitbox {} and hitbox {} at time {}.", event, id1, id2, collider.time());
 
         if event == Event::Collide {
             println!("Speed of collided hitboxes is halved.");
