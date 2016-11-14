@@ -19,9 +19,13 @@ use core::events::{EventManager, EventKey, EventKeysMap, InternalEvent};
 use core::inter::{Interactivity, DefaultInteractivity, Group};
 use core::{Hitbox, HitboxId, HIGH_TIME};
 use core::grid::Grid;
+use core::dur_hitbox::DurHitbox;
 use util::TightSet;
 
 /// A structure that tracks hitboxes and returns collide/separate events.
+///
+/// Collider manages events using a "simulation time" that the user updates
+/// as necessary.  This time starts at `0.0`.
 pub struct Collider<I: Interactivity = DefaultInteractivity> {
     hitboxes: FnvHashMap<HitboxId, HitboxInfo<I>>,
     time: N64,
@@ -63,42 +67,43 @@ impl <I: Interactivity> Collider<I> {
             events : EventManager::new()
         }
     }
-    
-    /// Returns the time until `self.next()` needs to be called again.
-    ///
-    /// Even if `self.time_until_next() == 0.0`, there is a chance that
-    /// calling `self.next()` will return `None`, having processed an internal event.
-    /// Regardless, after `self.next()` has been called repeatedly until it
-    /// returns `None`, then `self.time_until_next()` will be greater than `0.0` again.
-    ///
-    /// This is a fast constant-time operation.  The result may be infinity.
-    pub fn time_until_next(&self) -> N64 {
-        self.events.peek_time() - self.time
+
+    /// Returns the current simulation time.
+    pub fn time(&self) -> N64 {
+        self.time
     }
     
-    /// Advances the positions of all hitboxes, based on the velocities of the hitboxes,
-    /// by the given amount of `time`.
-    /// Will panic if `time` exceeds `self.time_until_next()`.
+    /// Returns the time at which `self.next()` needs to be called again.
+    ///
+    /// Even if `self.next_time() == self.time()`, there is a chance that
+    /// calling `self.next()` will return `None`, having processed an internal event.
+    /// Regardless, after `self.next()` has been called repeatedly until it
+    /// returns `None`, then `self.next_time()` will be greater than `self.time()` again.
+    ///
+    /// This is a fast constant-time operation.  The result may be infinity.
+    pub fn next_time(&self) -> N64 {
+        self.events.peek_time()
+    }
+    
+    /// Advances the simulation time to the given value.
+    ///
+    /// The positions of all hitboxes will be updated based on the velocities of the hitboxes.
+    /// Will panic if `time` exceeds `self.next_time()`.
+    /// Will also panic if `time` is less than `self.time()` (i.e. cannot rewind time).
     ///
     /// The hitboxes are updated implicitly, and this is actually a
     /// fast constant-time operation.
-    pub fn advance(&mut self, time: N64) {
-        assert!(time >= 0.0, "time must be non-negative");
-        let event_time = self.events.peek_time();
-        let time_until_next = event_time - self.time;
-        assert!(time <= time_until_next, "time must not exceed time_until_next()");
-        if time == time_until_next {
-            self.time = event_time;
-        } else {
-            self.time = (self.time + time).min(event_time);
-        }
-        assert!(self.time < HIGH_TIME, "time must not exceed {}", HIGH_TIME);
+    pub fn set_time(&mut self, time: N64) {
+        assert!(time >= self.time, "cannot rewind time");
+        assert!(time <= self.next_time(), "time must not exceed next_time()");
+        assert!(time < HIGH_TIME, "time must not exceed {}", HIGH_TIME);
+        self.time = time;
     }
     
     /// Processes and returns the next `Collide` or `Separate` event,
     /// or returns `None` if there are no more events that occured at the given time
     /// (although an internal event might have been processed if `None` is returned).
-    /// Will always return `None` if `self.time_until_next() > 0.0`.
+    /// Will always return `None` if `self.next_time() > self.time()`.
     ///
     /// The returned value is a tuple, denoting the type of event (`Collide` or `Separate`)
     /// and the two `HitboxId`s involved, in increasing order.
@@ -204,7 +209,7 @@ impl <I: Interactivity> Collider<I> {
     fn internal_update_hitbox(&mut self, id: HitboxId, hitbox: Option<Hitbox>, interactivity: Option<I>, phase: Phase) {
         let mut hitbox_info = self.hitboxes.remove(&id).unwrap_or_else(|| panic!("hitbox id {} not found", id));
         let mut hitbox = hitbox.unwrap_or_else(|| hitbox_info.pub_hitbox_at_time(self.time));
-        hitbox.validate(self.padding);
+        hitbox.validate(self.padding, self.time);
         self.events.clear_related_events(id, &mut hitbox_info.event_keys, &mut self.hitboxes);
         
         let old_group = hitbox_info.interactivity.group();
@@ -229,13 +234,14 @@ impl <I: Interactivity> Collider<I> {
         };
         
         mem::swap(&mut hitbox, &mut hitbox_info.hitbox);
-        let old_hitbox = hitbox;
+        let old_hitbox = hitbox.to_dur_hitbox(hitbox_info.start_time);
         self.solitaire_event_check(id, &mut hitbox_info, new_group.is_some());
+        let hitbox = hitbox_info.hitbox.to_dur_hitbox(self.time);
         
         let empty_group_array: &[Group] = &[];
         let interact_groups: &[Group] = if new_group.is_some() { hitbox_info.interactivity.interact_groups() } else { empty_group_array };
         let test_ids = self.grid.update_hitbox(
-            id, (&old_hitbox, old_group), (&hitbox_info.hitbox, new_group), interact_groups
+            id, (&old_hitbox, old_group), (&hitbox, new_group), interact_groups
         );
         hitbox_info.start_time = self.time;
         
@@ -244,7 +250,7 @@ impl <I: Interactivity> Collider<I> {
                 if !hitbox_info.overlaps.contains(&other_id) {
                     let other_hitbox_info = self.hitboxes.get_mut(&other_id).unwrap();
                     if hitbox_info.interactivity.can_interact(&other_hitbox_info.interactivity) {
-                        let delay = hitbox_info.hitbox.collide_time(&other_hitbox_info.hitbox_at_time(self.time));
+                        let delay = hitbox.collide_time(&other_hitbox_info.hitbox_at_time(self.time));
                         self.events.add_pair_event(self.time + delay, InternalEvent::Collide(id, other_id),
                             &mut hitbox_info.event_keys, &mut other_hitbox_info.event_keys);
                     }
@@ -253,7 +259,7 @@ impl <I: Interactivity> Collider<I> {
         }
         for &other_id in hitbox_info.overlaps.clone().iter() {
             let other_hitbox_info = self.hitboxes.get_mut(&other_id).unwrap();
-            let delay = hitbox_info.hitbox.separate_time(&other_hitbox_info.hitbox_at_time(self.time), self.padding);
+            let delay = hitbox.separate_time(&other_hitbox_info.hitbox_at_time(self.time), self.padding);
             self.events.add_pair_event(self.time + delay, InternalEvent::Separate(id, other_id),
                 &mut hitbox_info.event_keys, &mut other_hitbox_info.event_keys);
         }
@@ -281,26 +287,26 @@ impl <I: Interactivity> Collider<I> {
     
     #[cfg(debug_assertions)]
     fn solitaire_event_check(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo<I>, has_group: bool) {
-        hitbox_info.pub_duration = hitbox_info.hitbox.duration;
-        let mut result = (self.grid.cell_period(&hitbox_info.hitbox, has_group), InternalEvent::Reiterate(id));
-        let delay = hitbox_info.hitbox.duration * 1.01;
-        if delay < result.0 { result = (delay, InternalEvent::PanicDurationPassed(id)); }
-        let delay = hitbox_info.hitbox.time_until_too_small(self.padding);
-        if delay < result.0 { result = (delay, InternalEvent::PanicSmallHitbox(id)); }
-        hitbox_info.hitbox.duration = result.0;
-        self.events.add_solitaire_event(self.time + result.0, result.1, &mut hitbox_info.event_keys);
+        hitbox_info.pub_end_time = hitbox_info.hitbox.end_time;
+        let mut result = (self.time + self.grid.cell_period(&hitbox_info.hitbox, has_group), InternalEvent::Reiterate(id));
+        let end_time = hitbox_info.hitbox.end_time;
+        if end_time < result.0 { result = (end_time, InternalEvent::PanicDurationPassed(id)); }
+        let end_time = self.time + hitbox_info.hitbox.time_until_too_small(self.padding);
+        if end_time < result.0 { result = (end_time, InternalEvent::PanicSmallHitbox(id)); }
+        hitbox_info.hitbox.end_time = result.0;
+        self.events.add_solitaire_event(result.0, result.1, &mut hitbox_info.event_keys);
     }
     
     #[cfg(not(debug_assertions))]
     fn solitaire_event_check(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo<I>, has_group: bool) {
-        hitbox_info.pub_duration = hitbox_info.hitbox.duration;
-        let mut result = (self.grid.cell_period(&hitbox_info.hitbox, has_group), true);
-        let delay = hitbox_info.hitbox.duration * 1.01;
-        if delay < result.0 { result = (delay, false); }
-        let delay = hitbox_info.hitbox.time_until_too_small(self.padding);
-        if delay < result.0 { result = (delay, false); }
-        hitbox_info.hitbox.duration = result.0;
-        if result.1 { self.events.add_solitaire_event(self.time + result.0, InternalEvent::Reiterate(id), &mut hitbox_info.event_keys); }
+        hitbox_info.pub_end_time = hitbox_info.hitbox.end_time;
+        let mut result = (self.time + self.grid.cell_period(&hitbox_info.hitbox, has_group), true);
+        let end_time = hitbox_info.hitbox.end_time;
+        if end_time < result.0 { result = (end_time, false); }
+        let end_time = self.time + hitbox_info.hitbox.time_until_too_small(self.padding);
+        if end_time < result.0 { result = (end_time, false); }
+        hitbox_info.hitbox.end_time = result.0;
+        if result.1 { self.events.add_solitaire_event(result.0, InternalEvent::Reiterate(id), &mut hitbox_info.event_keys); }
     }
 }
 
@@ -325,7 +331,7 @@ struct HitboxInfo<I: Interactivity> {
     interactivity: I,
     hitbox: Hitbox,
     start_time: N64,
-    pub_duration: N64,
+    pub_end_time: N64,
     event_keys: TightSet<EventKey>,
     overlaps: TightSet<HitboxId>
 }
@@ -334,7 +340,7 @@ impl <I: Interactivity> HitboxInfo<I> {
     fn new(hitbox: Hitbox, interactivity: I, start_time: N64) -> HitboxInfo<I> {
         HitboxInfo {
             interactivity: interactivity,
-            pub_duration: hitbox.duration,
+            pub_end_time: hitbox.end_time,
             hitbox: hitbox,
             start_time: start_time,
             event_keys: TightSet::new(),
@@ -342,16 +348,18 @@ impl <I: Interactivity> HitboxInfo<I> {
         }
     }
 
-    fn hitbox_at_time(&self, time: N64) -> Hitbox {
+    fn hitbox_at_time(&self, time: N64) -> DurHitbox {
+        assert!(time >= self.start_time && time <= self.hitbox.end_time, "invalid time");
         let mut result = self.hitbox.clone();
-        result.advance(self.start_time, time);
-        result
+        result.shape = result.advanced_shape(time - self.start_time);
+        result.to_dur_hitbox(time)
     }
     
     fn pub_hitbox_at_time(&self, time: N64) -> Hitbox {
+        assert!(time >= self.start_time && time <= self.pub_end_time, "invalid time");
         let mut result = self.hitbox.clone();
-        result.duration = self.pub_duration;
-        result.advance(self.start_time, time);
+        result.end_time = self.pub_end_time;
+        result.shape = result.advanced_shape(time - self.start_time);
         result
     }
 }

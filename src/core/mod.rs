@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod solvers;
 mod grid;
 mod collider;
 mod events;
+mod dur_hitbox;
 
 pub use self::collider::*;
 
 use geom::*;
-use geom_ext::*;
 use float::*;
+use self::dur_hitbox::DurHitbox;
 
 const HIGH_TIME: f64 = 1e50;
 
@@ -48,17 +48,15 @@ pub struct Hitbox {
     /// Collider will catch such mistakes in unoptimized builds.
     pub vel: PlacedShape,
     
-    /// An upper-bound on the time until this hitbox will be updated by the user.
+    /// An upper-bound on the time at which the hitbox will be updated by the user.
     ///
     /// This is an advanced feature for efficiency and does not impact the results.
-    /// Infinity is used as the default, but using a lower value may
-    /// reduce the number of collisions that need to be checked.
+    /// Infinity is used as the default, but using a lower value may improve performance
     ///
-    /// Collider will panic if the duration is exceeded without update,
+    /// Collider will panic if the end time is exceeded without update,
     /// at least in unoptimized builds.  It is ultimately the user's responsibility
-    /// to ensure that durations are not exceeded (up to rounding error),
-    /// but collider will catch such mistakes in unoptimized builds.
-    pub duration: N64
+    /// to ensure that end times are not exceeded.
+    pub end_time: N64
 }
 
 //TODO invoke hitbox.validate() in more places so that inconsistencies are still found in optimized builds, just found later
@@ -72,17 +70,7 @@ impl Hitbox {
         Hitbox {
             shape : shape,
             vel : PlacedShape::new(Vec2::zero(), Shape::new(shape.kind(), Vec2::zero())),
-            duration : N64::infinity()
-        }
-    }
-    
-    fn advance(&mut self, orig_time: N64, new_time: N64) {
-        assert!(orig_time <= new_time, "requires orig_time <= new_time");
-        let delta = new_time - orig_time;
-        if delta != 0.0 {
-            self.shape = self.advanced_shape(delta);
-            let end_time = orig_time + self.duration;
-            self.duration = (end_time - new_time).max(n64(0.0));
+            end_time : N64::infinity()
         }
     }
     
@@ -91,40 +79,28 @@ impl Hitbox {
         self.shape + self.vel * r64(time.raw())
     }
     
-    fn bounding_box(&self) -> PlacedShape {
-        self.bounding_box_for(self.duration)
-    }
-    
-    fn bounding_box_for(&self, duration: N64) -> PlacedShape {
-        if self.vel.is_zero() {
-            self.shape.as_rect()
-        } else {
-            let end_shape = self.advanced_shape(duration);
-            self.shape.bounding_box(&end_shape)
-        }
-    }
-    
-    fn collide_time(&self, other: &Hitbox) -> N64 {
-        solvers::collide_time(self, other)
-    }
-    
-    fn separate_time(&self, other: &Hitbox, padding: R64) -> N64 {
-        solvers::separate_time(self, other, padding)
-    }
-    
-    fn validate(&self, min_size: R64) {
-        assert!(!self.duration.is_nan() && self.duration >= 0.0, "duration must be non-negative");
+    fn validate(&self, min_size: R64, present_time: N64) {
+        assert!(!self.end_time.is_nan() && self.end_time >= present_time, "end time must exceed present time");
         assert!(self.shape.kind() == self.vel.kind(), "shape and vel have different kinds");
         assert!(self.shape.dims().x >= min_size && self.shape.dims().y >= min_size, "shape width/height must be at least {}", min_size);
     }
     
     fn time_until_too_small(&self, min_size: R64) -> N64 {
         let min_size = min_size * 0.9;
-        assert!(self.shape.dims().x > min_size && self.shape.dims().y > min_size, "illegal state");
+        assert!(self.shape.dims().x > min_size && self.shape.dims().y > min_size);
         let mut time = N64::infinity();
         if self.vel.dims().x < 0.0 { time = time.min(N64::from(min_size - self.shape.dims().x) / N64::from(self.vel.dims().x)); }
         if self.vel.dims().y < 0.0 { time = time.min(N64::from(min_size - self.shape.dims().y) / N64::from(self.vel.dims().y)); }
         time
+    }
+
+    fn to_dur_hitbox(&self, time: N64) -> DurHitbox {
+        assert!(time <= self.end_time);
+        DurHitbox {
+            shape: self.shape,
+            vel: self.vel,
+            duration: self.end_time - time
+        }
     }
 }
 
@@ -171,152 +147,5 @@ pub mod inter {
 
     impl Interactivity for DefaultInteractivity {
         fn can_interact(&self, _other: &Self) -> bool { true }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use float::*;
-    use geom::*;
-    use core::*;
-    use std::f64;
-
-    #[test]
-    fn test_rect_rect_collision() {
-        let mut a = Hitbox::new(PlacedShape::new(vec2_f(-11.0, 0.0), Shape::new_rect(vec2_f(2.0, 2.0))));
-        a.vel.pos = vec2_f(2.0, 0.0);
-        a.duration = n64(100.0);
-        let mut b = Hitbox::new(PlacedShape::new(vec2_f(12.0, 2.0), Shape::new_rect(vec2_f(2.0, 4.0))));
-        b.vel.pos = vec2_f(-0.5, 0.0);
-        b.vel.shape = Shape::new_rect(vec2_f(1.0, 0.0));
-        b.duration = n64(100.0);
-        assert!(a.collide_time(&b) == 7.0);
-        assert!(b.collide_time(&a) == 7.0);
-        assert!(a.separate_time(&b, r64(0.1)) == 0.0);
-    }
-    
-    #[test]
-    fn test_circle_circle_collision() {
-        let sqrt2 = (2.0f64).sqrt();
-        let mut a = Hitbox::new(PlacedShape::new(vec2_f(-0.1*sqrt2, 0.0), Shape::new_circle(r64(2.0))));
-        a.vel.pos = vec2_f(0.1, 0.0);
-        a.duration = n64(100.0);
-        let mut b = Hitbox::new(PlacedShape::new(vec2_f(3.0*sqrt2, 0.0), Shape::new_circle(r64(2.0 + sqrt2*0.1))));
-        b.vel.pos = vec2_f(-2.0, 1.0);
-        b.vel.shape = Shape::new_circle(r64(-0.1));
-        b.duration = n64(100.0);
-        assert!((a.collide_time(&b) - sqrt2).abs() < 1e-7);
-        assert!(a.separate_time(&b, r64(0.1)) == 0.0);
-    }
-
-    #[test]
-    fn test_rect_circle_collision() {
-        let mut a = Hitbox::new(PlacedShape::new(vec2_f(-11.0, 0.0), Shape::new_circle(r64(2.0))));
-        a.vel.pos = vec2_f(2.0, 0.0);
-        a.duration = n64(100.0);
-        let mut b = Hitbox::new(PlacedShape::new(vec2_f(12.0, 2.0), Shape::new_rect(vec2_f(2.0, 4.0))));
-        b.vel.pos = vec2_f(-1.0, 0.0);
-        b.duration = n64(100.0);
-        assert!(a.collide_time(&b) == 7.0);
-        assert!(b.collide_time(&a) == 7.0);
-        assert!(a.separate_time(&b, r64(0.1)) == 0.0);
-    }
-
-    #[test]
-    fn test_rect_rect_separation() {
-        let mut a = Hitbox::new(PlacedShape::new(vec2_f(0.0, 0.0), Shape::new_rect(vec2_f(6.0, 4.0))));
-        a.vel.pos = vec2_f(1.0, 1.0);
-        a.duration = n64(100.0);
-        let mut b = Hitbox::new(PlacedShape::new(vec2_f(1.0, 0.0), Shape::new_rect(vec2_f(4.0, 4.0))));
-        b.vel.pos = vec2_f(0.5, 0.0);
-        b.duration = n64(100.0);
-        assert!(a.separate_time(&b, r64(0.1)) == 4.1);
-        assert!(b.separate_time(&a, r64(0.1)) == 4.1);
-        assert!(a.collide_time(&b) == 0.0);
-    }
-    
-    #[test]
-    fn test_circle_circle_separation() {
-        let sqrt2 = (2.0f64).sqrt();
-        let mut a = Hitbox::new(PlacedShape::new(vec2_f(2.0, 5.0), Shape::new_circle(r64(2.0))));
-        a.duration = n64(100.0);
-        let mut b = Hitbox::new(PlacedShape::new(vec2_f(3.0, 4.0), Shape::new_circle(r64(1.8))));
-        b.vel.pos = vec2_f(-1.0, 1.0);
-        b.duration = n64(100.0);
-        assert!(a.separate_time(&b, r64(0.1)) == 1.0 + sqrt2);
-        assert!(b.separate_time(&a, r64(0.1)) == 1.0 + sqrt2);
-        assert!(a.collide_time(&b) == 0.0);
-    }
-    
-    #[test]
-    fn test_rect_circle_separation() {
-        let sqrt2 = (2.0f64).sqrt();
-        let mut a = Hitbox::new(PlacedShape::new(vec2_f(4.0, 2.0), Shape::new_rect(vec2_f(4.0, 6.0))));
-        a.duration = n64(100.0);
-        let mut b = Hitbox::new(PlacedShape::new(vec2_f(3.0, 4.0), Shape::new_circle(r64(3.8))));
-        b.vel.pos = vec2_f(-1.0, 1.0);
-        b.duration = n64(100.0);
-        assert!(a.separate_time(&b, r64(0.1)) == 1.0 + sqrt2);
-        assert!(b.separate_time(&a, r64(0.1)) == 1.0 + sqrt2);
-        assert!(a.collide_time(&b) == 0.0);
-    }
-    
-    #[test]
-    fn test_no_collision() {
-        let mut a = Hitbox::new(PlacedShape::new(vec2_f(-11.0, 0.0), Shape::new_rect(vec2_f(2.0, 2.0))));
-        a.vel.pos = vec2_f(2.0, 0.0);
-        a.duration = n64(100.0);
-        let mut b = Hitbox::new(PlacedShape::new(vec2_f(12.0, 2.0), Shape::new_rect(vec2_f(2.0, 4.0))));
-        b.vel.pos = vec2_f(-1.0, 1.0);
-        b.duration = n64(100.0);
-        assert!(a.collide_time(&b) == f64::INFINITY);
-        assert!(a.separate_time(&b, r64(0.1)) == 0.0);
-        
-        b.shape.shape == Shape::new_circle(r64(2.0));
-        b.vel.shape == Shape::new_circle(r64(0.0));
-        assert!(a.collide_time(&b) == f64::INFINITY);
-        assert!(a.separate_time(&b, r64(0.1)) == 0.0);
-        
-        a.shape.shape == Shape::new_circle(r64(2.0));
-        a.vel.shape == Shape::new_circle(r64(0.0));
-        assert!(a.collide_time(&b) == f64::INFINITY);
-        assert!(a.separate_time(&b, r64(0.1)) == 0.0);
-    }
-    
-    #[test]
-    fn test_no_separation() {
-        let mut a = Hitbox::new(PlacedShape::new(vec2_f(5.0, 1.0), Shape::new_rect(vec2_f(2.0, 2.0))));
-        a.vel.pos = vec2_f(2.0, 1.0);
-        a.duration = n64(100.0);
-        let mut b = Hitbox::new(PlacedShape::new(vec2_f(5.0, 1.0), Shape::new_rect(vec2_f(2.0, 4.0))));
-        b.vel.pos = vec2_f(2.0, 1.0);
-        b.duration = n64(100.0);
-        assert!(a.separate_time(&b, r64(0.1)) == f64::INFINITY);
-        assert!(a.collide_time(&b) == 0.0);
-        
-        b.shape.shape == Shape::new_circle(r64(2.0));
-        b.vel.shape == Shape::new_circle(r64(0.0));
-        assert!(a.separate_time(&b, r64(0.1)) == f64::INFINITY);
-        assert!(a.collide_time(&b) == 0.0);
-        
-        a.shape.shape == Shape::new_circle(r64(2.0));
-        a.vel.shape == Shape::new_circle(r64(0.0));
-        assert!(a.separate_time(&b, r64(0.1)) == f64::INFINITY);
-        assert!(a.collide_time(&b) == 0.0);
-    }
-    
-    #[test]
-    fn test_low_duration() {
-        let sqrt2 = (2.0f64).sqrt();
-        let mut a = Hitbox::new(PlacedShape::new(vec2_f(0.0, 0.0), Shape::new_circle(r64(2.0))));
-        a.duration = n64(4.0 - sqrt2 + 0.01);
-        let mut b = Hitbox::new(PlacedShape::new(vec2_f(4.0, 4.0), Shape::new_circle(r64(2.0))));
-        b.vel.pos = vec2_f(-1.0, -1.0);
-        b.duration = n64(4.0 - sqrt2 + 0.01);
-        assert!(a.collide_time(&b) == 4.0 - sqrt2);
-        a.duration -= 0.02;
-        assert!(a.collide_time(&b) == f64::INFINITY);
-        b.duration -= 0.02;
-        assert!(a.collide_time(&b) == f64::INFINITY);
     }
 }

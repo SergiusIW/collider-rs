@@ -17,6 +17,7 @@ use fnv::{FnvHashMap, FnvHashSet};
 use std::cmp;
 use float::*;
 use core::{HitboxId, Hitbox};
+use core::dur_hitbox::DurHitbox;
 use core::inter::Group;
 use geom_ext::PlacedShapeExt;
 use util::TightSet;
@@ -65,8 +66,8 @@ impl Grid {
         }
     }
     
-    pub fn update_hitbox(&mut self, hitbox_id: HitboxId, old_hitbox: (&Hitbox, Option<Group>),
-                         new_hitbox: (&Hitbox, Option<Group>), groups: &[Group]) -> Option<FnvHashSet<HitboxId>>
+    pub fn update_hitbox(&mut self, hitbox_id: HitboxId, old_hitbox: (&DurHitbox, Option<Group>),
+                         new_hitbox: (&DurHitbox, Option<Group>), groups: &[Group]) -> Option<FnvHashSet<HitboxId>>
     {
         let (old_hitbox, old_group) = old_hitbox;
         let (new_hitbox, new_group) = new_hitbox;
@@ -78,7 +79,7 @@ impl Grid {
         new_area.map(|new_area| self.overlapping_ids(hitbox_id, new_area.rect, groups))
     }
     
-    fn index_bounds(&self, hitbox: &Hitbox, group: Option<Group>) -> Option<GridArea> {
+    fn index_bounds(&self, hitbox: &DurHitbox, group: Option<Group>) -> Option<GridArea> {
         group.map(|group| {
             let bounds = hitbox.bounding_box();
             let start_x = (bounds.left() / self.cell_width).floor().raw() as i32;

@@ -13,12 +13,13 @@
 // limitations under the License.
 
 use float::*;
-use core::{Hitbox, self};
+use core;
+use core::dur_hitbox::DurHitbox;
 use geom::*;
 use geom_ext::*;
 use util;
 
-pub fn collide_time(a: &Hitbox, b: &Hitbox) -> N64 {
+pub fn collide_time(a: &DurHitbox, b: &DurHitbox) -> N64 {
     let duration = a.duration.min(b.duration);
     if a.bounding_box_for(duration).overlaps(&b.bounding_box_for(duration)) {
         time_unpadded(a, b, true, duration)
@@ -27,7 +28,7 @@ pub fn collide_time(a: &Hitbox, b: &Hitbox) -> N64 {
     }
 }
 
-pub fn separate_time(a: &Hitbox, b: &Hitbox, padding: R64) -> N64 {
+pub fn separate_time(a: &DurHitbox, b: &DurHitbox, padding: R64) -> N64 {
     let (a, b) = match (a.shape.kind(), b.shape.kind()) {
         (ShapeKind::Rect, ShapeKind::Circle) => (b, a),
         _ => (a, b)
@@ -37,7 +38,7 @@ pub fn separate_time(a: &Hitbox, b: &Hitbox, padding: R64) -> N64 {
     time_unpadded(&a, b, false, a.duration.min(b.duration))
 }
 
-fn time_unpadded(a: &Hitbox, b: &Hitbox, for_collide: bool, duration: N64) -> N64 {
+fn time_unpadded(a: &DurHitbox, b: &DurHitbox, for_collide: bool, duration: N64) -> N64 {
     let result = match (a.shape.kind(), b.shape.kind()) {
         (ShapeKind::Rect, ShapeKind::Rect) => rect_rect_time(a, b, for_collide),
         (ShapeKind::Circle, ShapeKind::Circle) => circle_circle_time(a, b, for_collide),
@@ -47,7 +48,7 @@ fn time_unpadded(a: &Hitbox, b: &Hitbox, for_collide: bool, duration: N64) -> N6
     if result >= duration { N64::infinity() } else { result }
 }
 
-fn rect_rect_time(a: &Hitbox, b: &Hitbox, for_collide: bool) -> N64 {
+fn rect_rect_time(a: &DurHitbox, b: &DurHitbox, for_collide: bool) -> N64 {
     let mut overlap_start = n64(0.0);
     let mut overlap_end = N64::infinity();
     for &card in Card::vals() {
@@ -71,7 +72,7 @@ fn rect_rect_time(a: &Hitbox, b: &Hitbox, for_collide: bool) -> N64 {
     if for_collide { overlap_start } else { overlap_end }
 }
 
-fn circle_circle_time(a: &Hitbox, b: &Hitbox, for_collide: bool) -> N64 {
+fn circle_circle_time(a: &DurHitbox, b: &DurHitbox, for_collide: bool) -> N64 {
     let sign = if for_collide { r64(1.0) } else { r64(-1.0) };
     
     let net_rad = (a.shape.dims().x + b.shape.dims().x) * 0.5;
@@ -92,7 +93,7 @@ fn circle_circle_time(a: &Hitbox, b: &Hitbox, for_collide: bool) -> N64 {
     }
 }
 
-fn rect_circle_time(rect: &Hitbox, circle: &Hitbox, for_collide: bool, duration: N64) -> N64 {
+fn rect_circle_time(rect: &DurHitbox, circle: &DurHitbox, for_collide: bool, duration: N64) -> N64 {
     if for_collide {
         rect_circle_collide_time(rect, circle, duration)
     } else {
@@ -100,7 +101,7 @@ fn rect_circle_time(rect: &Hitbox, circle: &Hitbox, for_collide: bool, duration:
     }
 }
 
-fn rect_circle_collide_time(rect: &Hitbox, circle: &Hitbox, duration: N64) -> N64 {
+fn rect_circle_collide_time(rect: &DurHitbox, circle: &DurHitbox, duration: N64) -> N64 {
     let base_time = rect_rect_time(rect, circle, true);
     if base_time >= duration {
         N64::infinity()
@@ -109,7 +110,7 @@ fn rect_circle_collide_time(rect: &Hitbox, circle: &Hitbox, duration: N64) -> N6
     }
 }
 
-fn rect_circle_separate_time(rect: &Hitbox, circle: &Hitbox) -> N64 {
+fn rect_circle_separate_time(rect: &DurHitbox, circle: &DurHitbox) -> N64 {
     let base_time = rect_rect_time(rect, circle, false);
     if base_time == 0.0 { return n64(0.0) }
     if base_time >= core::HIGH_TIME { return N64::infinity() }
@@ -125,10 +126,10 @@ fn rect_circle_separate_time(rect: &Hitbox, circle: &Hitbox) -> N64 {
     (base_time - rebased_rect_circle_collide_time(&rect, &circle)).max(n64(0.0))
 }
 
-fn rebased_rect_circle_collide_time(rect: &Hitbox, circle: &Hitbox) -> N64 {
+fn rebased_rect_circle_collide_time(rect: &DurHitbox, circle: &DurHitbox) -> N64 {
     let sector = rect.shape.sector(circle.shape.pos);
     if sector.is_corner() {
-        let mut corner = Hitbox::new(PlacedShape::new(rect.shape.corner(sector), Shape::new_circle(r64(0.0))));
+        let mut corner = DurHitbox::new(PlacedShape::new(rect.shape.corner(sector), Shape::new_circle(r64(0.0))));
         corner.vel.pos = rect.vel.corner(sector);
         circle_circle_time(&corner, circle, true)
     } else {

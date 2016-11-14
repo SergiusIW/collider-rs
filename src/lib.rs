@@ -69,13 +69,11 @@
 //! hitbox.vel.pos = vec2(-1.0, 0.0);
 //! collider.add_hitbox(1, hitbox);
 //!
-//! let mut clock = 0.0;
-//! while clock < 20.0 {
-//!     let timestep = collider.time_until_next().min(20.0 - clock);
-//!     clock += timestep;
-//!     collider.advance(timestep);
+//! while collider.time() < 20.0 {
+//!     let time = collider.next_time().min(20.0);
+//!     collider.set_time(time);
 //!     if let Some((event, id1, id2)) = collider.next() {
-//!         println!("{:?} between hitbox {} and hitbox {} at time {}.", event, id1, id2, clock);
+//!         println!("{:?} between hitbox {} and hitbox {} at time {}.", event, id1, id2, collider.time());
 //!
 //!         if event == Event::Collide {
 //!             println!("Speed of collided hitboxes is halved.");
@@ -116,22 +114,21 @@ mod tests {
     use float::*;
     use super::{Collider, Hitbox, Event};
     use geom::{PlacedShape, Shape, vec2_f};
-    
+
     fn advance_to_event(collider: &mut Collider, time: N64) {
         advance(collider, time);
-        assert!(collider.time_until_next() == 0.0);
+        assert!(collider.next_time() == collider.time());
     }
-    
-    fn advance(collider: &mut Collider, mut time: N64) {
-        while time > 0.0 {
+
+    fn advance(collider: &mut Collider, time: N64) {
+        while collider.time() < time {
             assert!(collider.next() == None);
-            let timestep = collider.time_until_next().min(time);
-            time -= timestep;
-            collider.advance(timestep);
+            let new_time = collider.next_time().min(time);
+            collider.set_time(new_time);
         }
-        assert!(time == 0.0);
+        assert!(collider.time() == time);
     }
-    
+
     #[test]
     fn smoke_test() {
         let mut collider = Collider::new(r64(4.0), r64(0.25));
@@ -146,11 +143,11 @@ mod tests {
         
         advance_to_event(&mut collider, n64(9.0));
         assert!(collider.next() == Some((Event::Collide, 0, 1)));
-        advance_to_event(&mut collider, n64(2.125));
+        advance_to_event(&mut collider, n64(11.125));
         assert!(collider.next() == Some((Event::Separate, 0, 1)));
-        advance(&mut collider, n64(11.0));
+        advance(&mut collider, n64(23.0));
     }
-    
+
     #[test]
     fn test_hitbox_updates() {
         let mut collider = Collider::new(r64(4.0), r64(0.25));
@@ -168,56 +165,56 @@ mod tests {
         let mut hitbox = collider.get_hitbox(0);
         assert!(hitbox.shape == PlacedShape::new(vec2_f(1.0, 0.0), Shape::new_square(r64(2.0))));
         assert!(hitbox.vel == PlacedShape::new(vec2_f(1.0, 0.0), Shape::new_square(r64(0.0))));
-        assert!(hitbox.duration == f64::INFINITY);
+        assert!(hitbox.end_time == f64::INFINITY);
         hitbox.shape.pos = vec2_f(0.0, 2.0);
         hitbox.vel.pos = vec2_f(0.0, -1.0);
         collider.update_hitbox(0, hitbox);
         
-        advance(&mut collider, n64(3.0));
+        advance(&mut collider, n64(14.0));
         
         let mut hitbox = collider.get_hitbox(1);
         assert!(hitbox.shape == PlacedShape::new(vec2_f(24.0, 0.0), Shape::new_circle(r64(2.0))));
         assert!(hitbox.vel == PlacedShape::new(vec2_f(1.0, 0.0), Shape::new_circle(r64(0.0))));
-        assert!(hitbox.duration == f64::INFINITY);
+        assert!(hitbox.end_time == f64::INFINITY);
         hitbox.shape.pos = vec2_f(0.0, -8.0);
         hitbox.vel.pos = vec2_f(0.0, 0.0);
         collider.update_hitbox(1, hitbox);
         
-        advance_to_event(&mut collider, n64(5.0));
+        advance_to_event(&mut collider, n64(19.0));
         
         assert!(collider.next() == Some((Event::Collide, 0, 1)));
         let mut hitbox = collider.get_hitbox(0);
         assert!(hitbox.shape == PlacedShape::new(vec2_f(0.0, -6.0), Shape::new_square(r64(2.0))));
         assert!(hitbox.vel == PlacedShape::new(vec2_f(0.0, -1.0), Shape::new_square(r64(0.0))));
-        assert!(hitbox.duration == f64::INFINITY);
+        assert!(hitbox.end_time == f64::INFINITY);
         hitbox.vel.pos = vec2_f(0.0, 0.0);
         collider.update_hitbox(0, hitbox);
         
         let mut hitbox = collider.get_hitbox(1);
         assert!(hitbox.shape == PlacedShape::new(vec2_f(0.0, -8.0), Shape::new_circle(r64(2.0))));
         assert!(hitbox.vel == PlacedShape::new(vec2_f(0.0, 0.0), Shape::new_circle(r64(0.0))));
-        assert!(hitbox.duration == f64::INFINITY);
+        assert!(hitbox.end_time == f64::INFINITY);
         hitbox.vel.pos = vec2_f(0.0, 2.0);
         collider.update_hitbox(1, hitbox);
         
         let hitbox = Hitbox::new(PlacedShape::new(vec2_f(0.0, 0.0), Shape::new_rect(vec2_f(2.0, 20.0))));
         collider.add_hitbox(2, hitbox);
         
-        assert!(collider.time_until_next() == 0.0);
+        assert!(collider.next_time() == collider.time());
         let (mut event_1, mut event_2) = (collider.next(), collider.next());
         if event_1.unwrap().1 == 1 { mem::swap(&mut event_1, &mut event_2); }
         assert!(event_1 == Some((Event::Collide, 0, 2)));
         assert!(event_2 == Some((Event::Collide, 1, 2)));
         
-        advance_to_event(&mut collider, n64(2.125));
+        advance_to_event(&mut collider, n64(21.125));
         
         assert!(collider.next() == Some((Event::Separate, 0, 1)));
         
-        advance(&mut collider, n64(5.0));
+        advance(&mut collider, n64(26.125));
         
         collider.remove_hitbox(1);
 
-        advance(&mut collider, n64(11.0));
+        advance(&mut collider, n64(37.125));
     }
     
     //TODO test custom interactivities and interactivity changes...
