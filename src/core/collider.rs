@@ -1,4 +1,4 @@
-// Copyright 2016 Matthew D. Michelotti
+// Copyright 2016-2017 Matthew D. Michelotti
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
 
 use fnv::FnvHashMap;
 use std::mem;
-use float::*;
 use core::events::{EventManager, EventKey, EventKeysMap, InternalEvent};
 use core::inter::{Interactivity, DefaultInteractivity, Group};
 use core::{Hitbox, HitboxId, HIGH_TIME};
@@ -22,15 +21,17 @@ use core::grid::Grid;
 use core::dur_hitbox::DurHitbox;
 use util::TightSet;
 
+// TODO check that floating point values are within a good range when adding/updating hitboxes
+
 /// A structure that tracks hitboxes and returns collide/separate events.
 ///
 /// Collider manages events using a "simulation time" that the user updates
 /// as necessary.  This time starts at `0.0`.
 pub struct Collider<I: Interactivity = DefaultInteractivity> {
     hitboxes: FnvHashMap<HitboxId, HitboxInfo<I>>,
-    time: N64,
+    time: f64,
     grid: Grid,
-    padding: R64,
+    padding: f64,
     events: EventManager
 }
 
@@ -56,12 +57,12 @@ impl <I: Interactivity> Collider<I> {
     /// user, perhaps a fraction of a "pixel."
     /// Another restriction introduced by `padding` is that hitboxes are not
     /// allowed to have a width or height smaller than `padding`.
-    pub fn new(cell_width: R64, padding: R64) -> Collider<I> {
+    pub fn new(cell_width: f64, padding: f64) -> Collider<I> {
         assert!(cell_width > padding, "requires cell_width > padding");
         assert!(padding > 0.0, "requires padding > 0.0");
         Collider {
             hitboxes : FnvHashMap::default(),
-            time : n64(0.0),
+            time : 0.0,
             grid : Grid::new(cell_width),
             padding : padding,
             events : EventManager::new()
@@ -69,7 +70,7 @@ impl <I: Interactivity> Collider<I> {
     }
 
     /// Returns the current simulation time.
-    pub fn time(&self) -> N64 {
+    pub fn time(&self) -> f64 {
         self.time
     }
 
@@ -81,7 +82,7 @@ impl <I: Interactivity> Collider<I> {
     /// returns `None`, then `self.next_time()` will be greater than `self.time()` again.
     ///
     /// This is a fast constant-time operation.  The result may be infinity.
-    pub fn next_time(&self) -> N64 {
+    pub fn next_time(&self) -> f64 {
         self.events.peek_time()
     }
 
@@ -93,7 +94,7 @@ impl <I: Interactivity> Collider<I> {
     ///
     /// The hitboxes are updated implicitly, and this is actually a
     /// fast constant-time operation.
-    pub fn set_time(&mut self, time: N64) {
+    pub fn set_time(&mut self, time: f64) {
         assert!(time >= self.time, "cannot rewind time");
         assert!(time <= self.next_time(), "time must not exceed next_time()");
         assert!(time < HIGH_TIME, "time must not exceed {}", HIGH_TIME);
@@ -331,14 +332,14 @@ enum Phase {
 struct HitboxInfo<I: Interactivity> {
     interactivity: I,
     hitbox: Hitbox,
-    start_time: N64,
-    pub_end_time: N64,
+    start_time: f64,
+    pub_end_time: f64,
     event_keys: TightSet<EventKey>,
     overlaps: TightSet<HitboxId>
 }
 
 impl <I: Interactivity> HitboxInfo<I> {
-    fn new(hitbox: Hitbox, interactivity: I, start_time: N64) -> HitboxInfo<I> {
+    fn new(hitbox: Hitbox, interactivity: I, start_time: f64) -> HitboxInfo<I> {
         HitboxInfo {
             interactivity: interactivity,
             pub_end_time: hitbox.end_time,
@@ -349,14 +350,14 @@ impl <I: Interactivity> HitboxInfo<I> {
         }
     }
 
-    fn hitbox_at_time(&self, time: N64) -> DurHitbox {
+    fn hitbox_at_time(&self, time: f64) -> DurHitbox {
         assert!(time >= self.start_time && time <= self.hitbox.end_time, "invalid time");
         let mut result = self.hitbox.clone();
         result.shape = result.advanced_shape(time - self.start_time);
         result.to_dur_hitbox(time)
     }
 
-    fn pub_hitbox_at_time(&self, time: N64) -> Hitbox {
+    fn pub_hitbox_at_time(&self, time: f64) -> Hitbox {
         assert!(time >= self.start_time && time <= self.pub_end_time, "invalid time");
         let mut result = self.hitbox.clone();
         result.end_time = self.pub_end_time;

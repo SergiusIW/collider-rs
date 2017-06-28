@@ -41,13 +41,6 @@ more efficient in certain circumstances,
 since the hitboxes may be updated less frequently and still maintain a
 smooth appearance over time.
 
-Collider may be built with the `noisy-floats` feature, which will use the `R64` and `N64`
-types from the `noisy_float` crate in place of `f64` types.
-In either case, it is ultimately the user's responsibility to ensure
-that they do not do anything that will result in improper floating point overflow or NaN.
-For instructions for building a crate with a conditional feature,
-see http://doc.crates.io/specifying-dependencies.html#choosing-features.
-
 ### Example
 ```rust
 use collider::{Collider, Hitbox, Event};
@@ -90,9 +83,9 @@ while collider.time() < 20.0 {
 
 The homepage for Collider is on my personal website: http://www.matthewmichelotti.com/projects/collider/.
 
-### License 
+### License
 
-Collider is licensed under the [Apache 2.0 
+Collider is licensed under the [Apache 2.0
 License](http://www.apache.org/licenses/LICENSE-2.0.html).
 
 ### Looking forward

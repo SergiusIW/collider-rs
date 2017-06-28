@@ -1,4 +1,4 @@
-// Copyright 2016 Matthew D. Michelotti
+// Copyright 2016-2017 Matthew D. Michelotti
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,8 +19,9 @@ mod dur_hitbox;
 
 pub use self::collider::*;
 
+use std::f64;
+
 use geom::*;
-use float::*;
 use self::dur_hitbox::DurHitbox;
 
 const HIGH_TIME: f64 = 1e50;
@@ -36,7 +37,7 @@ pub struct Hitbox {
     /// The width and height of the shape must be greater than `padding` (in the `Collider` constructor)
     /// at all times.
     pub shape: PlacedShape,
-    
+
     /// A velocity that describes how the shape is changing over time.
     ///
     /// The `vel` may include the velocity of the width and height of the `shape` as
@@ -47,7 +48,7 @@ pub struct Hitbox {
     /// then the user is responsible for ensuring that the shape will not decrease below this threshold.
     /// Collider will catch such mistakes in unoptimized builds.
     pub vel: PlacedShape,
-    
+
     /// An upper-bound on the time at which the hitbox will be updated by the user.
     ///
     /// This is an advanced feature for efficiency and does not impact the results.
@@ -56,13 +57,10 @@ pub struct Hitbox {
     /// Collider will panic if the end time is exceeded without update,
     /// at least in unoptimized builds.  It is ultimately the user's responsibility
     /// to ensure that end times are not exceeded.
-    pub end_time: N64
+    pub end_time: f64
 }
 
 //TODO invoke hitbox.validate() in more places so that inconsistencies are still found in optimized builds, just found later
-
-#[cfg(feature = "noisy-floats")]
-impl Eq for Hitbox {}
 
 impl Hitbox {
     /// Constructs a new hitbox with the given `shape` and a `vel` of zero and `duration` of infinity.
@@ -70,31 +68,31 @@ impl Hitbox {
         Hitbox {
             shape : shape,
             vel : PlacedShape::new(Vec2::zero(), Shape::new(shape.kind(), Vec2::zero())),
-            end_time : N64::infinity()
+            end_time : f64::INFINITY
         }
     }
-    
-    fn advanced_shape(&self, time: N64) -> PlacedShape {
+
+    fn advanced_shape(&self, time: f64) -> PlacedShape {
         assert!(time < HIGH_TIME, "requires time < {}", HIGH_TIME);
-        self.shape + self.vel * r64(time.raw())
+        self.shape + self.vel * time
     }
-    
-    fn validate(&self, min_size: R64, present_time: N64) {
+
+    fn validate(&self, min_size: f64, present_time: f64) {
         assert!(!self.end_time.is_nan() && self.end_time >= present_time, "end time must exceed present time");
         assert!(self.shape.kind() == self.vel.kind(), "shape and vel have different kinds");
         assert!(self.shape.dims().x >= min_size && self.shape.dims().y >= min_size, "shape width/height must be at least {}", min_size);
     }
-    
-    fn time_until_too_small(&self, min_size: R64) -> N64 {
+
+    fn time_until_too_small(&self, min_size: f64) -> f64 {
         let min_size = min_size * 0.9;
         assert!(self.shape.dims().x > min_size && self.shape.dims().y > min_size);
-        let mut time = N64::infinity();
-        if self.vel.dims().x < 0.0 { time = time.min(N64::from(min_size - self.shape.dims().x) / N64::from(self.vel.dims().x)); }
-        if self.vel.dims().y < 0.0 { time = time.min(N64::from(min_size - self.shape.dims().y) / N64::from(self.vel.dims().y)); }
+        let mut time = f64::INFINITY;
+        if self.vel.dims().x < 0.0 { time = time.min(min_size - self.shape.dims().x / self.vel.dims().x); }
+        if self.vel.dims().y < 0.0 { time = time.min(min_size - self.shape.dims().y / self.vel.dims().y); }
         time
     }
 
-    fn to_dur_hitbox(&self, time: N64) -> DurHitbox {
+    fn to_dur_hitbox(&self, time: f64) -> DurHitbox {
         assert!(time <= self.end_time);
         DurHitbox {
             shape: self.shape,
@@ -127,12 +125,12 @@ pub mod inter {
         /// If `None` is returned, then no collisions will be reported
         /// for this hitbox at all.
         fn group(&self) -> Option<Group> { Some(0) }
-        
+
         /// Returns a list of groups that this hitbox can interact with.
         /// Using large lists of groups may be inefficient.
         /// Default is `[0]`.
         fn interact_groups(&self) -> &'static [Group] { &DEFAULT_GROUPS }
-        
+
         /// Returns true if the pair of hitboxes should be checked for collisions.
         /// This method should be commutative.
         /// This method should be consistent with `group` and `interact_groups`,

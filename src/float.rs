@@ -1,4 +1,4 @@
-// Copyright 2016 Matthew D. Michelotti
+// Copyright 2016-2017 Matthew D. Michelotti
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,63 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub use self::float::*;
+use std::f64;
+use std::cmp::Ordering;
 
-#[cfg(feature = "noisy-floats")]
-mod float
-{
-    pub use noisy_float::prelude::*;
-    pub fn n64_cmp(val: N64) -> N64 { val }
-    pub fn r64_cmp(val: R64) -> R64 { val }
+pub fn n64(val: f64) -> N64 { N64::new(val) }
+
+#[derive(PartialEq, PartialOrd, Copy, Clone, Default)]
+pub struct N64 {
+    val: f64
 }
 
-#[cfg(not(feature = "noisy-floats"))]
-mod float
-{
-    use std::f64;
-    use std::cmp::Ordering;
+impl N64 {
+    fn new(val: f64) -> N64 {
+        assert!(!val.is_nan(), "unexpected NaN");
+        N64 { val : val }
+    }
+}
 
-    pub type N64 = f64;
-    pub type R64 = f64;
-    pub fn n64(val: f64) -> f64 { val }
-    pub fn r64(val: f64) -> f64 { val }
-    
-    pub trait F64Ext {
-        fn infinity() -> f64;
-        fn raw(self) -> f64;
-    }
-    
-    impl F64Ext for f64 {
-        fn infinity() -> f64 { f64::INFINITY }
-        fn raw(self) -> f64 { self }
-    }
-    
-    pub fn n64_cmp(val: f64) -> Ordered64 { Ordered64::new(val) }
-    pub fn r64_cmp(val: f64) -> Ordered64 { Ordered64::new(val) }
-    
-    #[derive(PartialEq, PartialOrd, Copy, Clone, Default)]
-    pub struct Ordered64 {
-        val: f64
-    }
-    
-    impl Into<f64> for Ordered64 {
-        fn into(self) -> f64 {
-            self.val
-        }
-    }
-    
-    impl Ordered64 {
-        fn new(val: f64) -> Ordered64 {
-            assert!(!val.is_nan(), "unexpected NaN");
-            Ordered64 { val : val }
-        }
-    }
-    
-    impl Eq for Ordered64 { }
-    
-    impl Ord for Ordered64 {
-        fn cmp(&self, other: &Self) -> Ordering {
-            self.val.partial_cmp(&other.val).unwrap()
-        }
+impl Eq for N64 { }
+
+impl Ord for N64 {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.val.partial_cmp(&other.val).unwrap()
     }
 }

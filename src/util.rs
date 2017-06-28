@@ -1,4 +1,4 @@
-// Copyright 2016 Matthew D. Michelotti
+// Copyright 2016-2017 Matthew D. Michelotti
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,18 +16,17 @@ use std::collections::{hash_set, HashSet};
 use fnv::FnvHashSet;
 use std::borrow::Borrow;
 use std::hash::Hash;
-use float::*;
 
 pub use self::one_or_two::OneOrTwo;
 
-pub fn quad_root_ascending(a: R64, b: R64, c: R64) -> Option<N64> {
+pub fn quad_root_ascending(a: f64, b: f64, c: f64) -> Option<f64> {
     let determinant = b * b - a * c * 4.0;
     if determinant <= 0.0 {
         None
     } else if b >= 0.0 {
-        Some(N64::from(c * 2.0) / N64::from(-b - determinant.sqrt()))
+        Some(c * 2.0 / -b - determinant.sqrt())
     } else {
-        Some(N64::from(-b + determinant.sqrt()) / N64::from(a * 2.0))
+        Some(-b + determinant.sqrt() / a * 2.0)
     }
 }
 
@@ -47,13 +46,13 @@ impl <T: Hash + Eq> TightSet<T> {
         self.set.insert(value)
     }
 
-    pub fn contains<Q: ?Sized>(&self, value: &Q) -> bool 
+    pub fn contains<Q: ?Sized>(&self, value: &Q) -> bool
         where T: Borrow<Q>, Q: Hash + Eq
     {
         self.set.contains(value)
     }
-    
-    pub fn remove<Q: ?Sized>(&mut self, value: &Q) -> bool 
+
+    pub fn remove<Q: ?Sized>(&mut self, value: &Q) -> bool
         where T: Borrow<Q>, Q: Hash + Eq
     {
         let success = self.set.remove(value);
@@ -66,11 +65,11 @@ impl <T: Hash + Eq> TightSet<T> {
     pub fn iter(&self) -> hash_set::Iter<T> {
         self.set.iter()
     }
-    
+
     pub fn is_empty(&self) -> bool {
         self.set.is_empty()
     }
-    
+
     pub fn clear(&mut self) {
         if self.set.capacity() <= MIN_TIGHT_SET_CAPACITY {
             self.set.clear();
@@ -85,7 +84,7 @@ mod one_or_two {
         One(T),
         Two(T, T)
     }
-    
+
     impl <T: Copy + Eq> OneOrTwo<T> {
         pub fn other_id(self, id: T) -> Option<T> {
             match self {
@@ -94,17 +93,17 @@ mod one_or_two {
                 _ => panic!("illegal state")
             }
         }
-        
+
         pub fn iter(self) -> Iter<T> {
             Iter { one_or_two : self, index : 0 }
         }
     }
-    
+
     pub struct Iter<T: Copy + Eq> {
         one_or_two: OneOrTwo<T>,
         index: u8
     }
-    
+
     impl <T: Copy + Eq> Iterator for Iter<T> {
         type Item = T;
         fn next(&mut self) -> Option<T> {
@@ -122,7 +121,7 @@ mod one_or_two {
 mod tests {
     use float::*;
     use super::*;
-    
+
     #[test]
     fn test_quad_root_ascending() {
         assert!((quad_root_ascending(r64(1e-14), r64(2.0), r64(-1.0)).unwrap() - 0.5).abs() < 1e-7);

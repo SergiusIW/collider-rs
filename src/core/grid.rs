@@ -1,4 +1,4 @@
-// Copyright 2016 Matthew D. Michelotti
+// Copyright 2016-2017 Matthew D. Michelotti
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::f64;
 use std::collections::hash_map;
 use fnv::{FnvHashMap, FnvHashSet};
 use std::cmp;
-use float::*;
 use core::{HitboxId, Hitbox};
 use core::dur_hitbox::DurHitbox;
 use core::inter::Group;
@@ -45,47 +45,47 @@ impl GridArea {
 
 pub struct Grid {
     map: FnvHashMap<GridKey, TightSet<HitboxId>>,
-    cell_width: R64
+    cell_width: f64
 }
 
 impl Grid {
-    pub fn new(cell_width: R64) -> Grid {
+    pub fn new(cell_width: f64) -> Grid {
         Grid { map : FnvHashMap::default(), cell_width: cell_width }
     }
 
-    pub fn cell_period(&self, hitbox: &Hitbox, has_group: bool) -> N64 {
+    pub fn cell_period(&self, hitbox: &Hitbox, has_group: bool) -> f64 {
         if has_group {
             let speed = hitbox.vel.max_edge();
             if speed <= 0.0 {
-                N64::infinity()
+                f64::INFINITY
             } else {
-                N64::from(self.cell_width) / N64::from(speed)
+                self.cell_width / speed
             }
         } else {
-            N64::infinity()
+            f64::INFINITY
         }
     }
-    
+
     pub fn update_hitbox(&mut self, hitbox_id: HitboxId, old_hitbox: (&DurHitbox, Option<Group>),
                          new_hitbox: (&DurHitbox, Option<Group>), groups: &[Group]) -> Option<FnvHashSet<HitboxId>>
     {
         let (old_hitbox, old_group) = old_hitbox;
         let (new_hitbox, new_group) = new_hitbox;
-        
+
         assert!(new_group.is_some() || groups.is_empty(), "illegal state");
         let old_area = self.index_bounds(old_hitbox, old_group);
         let new_area = self.index_bounds(new_hitbox, new_group);
         self.update_area(hitbox_id, old_area, new_area);
         new_area.map(|new_area| self.overlapping_ids(hitbox_id, new_area.rect, groups))
     }
-    
+
     fn index_bounds(&self, hitbox: &DurHitbox, group: Option<Group>) -> Option<GridArea> {
         group.map(|group| {
             let bounds = hitbox.bounding_box();
-            let start_x = (bounds.left() / self.cell_width).floor().raw() as i32;
-            let start_y = (bounds.bottom() / self.cell_width).floor().raw() as i32;
-            let end_x = cmp::max((bounds.right() / self.cell_width).ceil().raw() as i32, start_x + 1);
-            let end_y = cmp::max((bounds.top() / self.cell_width).ceil().raw() as i32, start_y + 1);
+            let start_x = (bounds.left() / self.cell_width).floor() as i32;
+            let start_y = (bounds.bottom() / self.cell_width).floor() as i32;
+            let end_x = cmp::max((bounds.right() / self.cell_width).ceil() as i32, start_x + 1);
+            let end_y = cmp::max((bounds.top() / self.cell_width).ceil() as i32, start_y + 1);
             GridArea { rect : IndexRect::new((start_x, start_y), (end_x, end_y)), group : group }
         })
     }

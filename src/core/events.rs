@@ -1,4 +1,4 @@
-// Copyright 2016 Matthew D. Michelotti
+// Copyright 2016-2017 Matthew D. Michelotti
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::f64;
 use std::collections::BTreeMap;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
-use float::*;
+use float::n64;
 use core::{HitboxId, HIGH_TIME};
 use util::{TightSet, OneOrTwo};
 
@@ -23,12 +24,12 @@ const PAIR_BASE: u64 = 0x8000_0000_0000_0000;
 
 #[derive(Copy, Clone)]
 pub struct EventKey {
-    time: N64,
+    time: f64,
     index: u64
 }
 
 impl EventKey {
-    fn time(&self) -> N64 {
+    fn time(&self) -> f64 {
         self.time
     }
 }
@@ -58,7 +59,7 @@ impl Ord for EventKey {
         if self.time == other.time {
             self.index.cmp(&other.index)
         } else {
-            n64_cmp(self.time).cmp(&n64_cmp(other.time))
+            n64(self.time).cmp(&n64(other.time))
         }
     }
 }
@@ -80,7 +81,7 @@ impl InternalEvent {
     fn other_id(self, id: HitboxId) -> Option<HitboxId> {
         self.involved_hitbox_ids().other_id(id)
     }
-    
+
     fn involved_hitbox_ids(self) -> OneOrTwo<HitboxId> {
         match self {
             #[cfg(debug_assertions)] InternalEvent::PanicSmallHitbox(id) | InternalEvent::PanicDurationPassed(id) => OneOrTwo::One(id),
@@ -100,14 +101,14 @@ impl EventManager {
         EventManager { events : BTreeMap::new(), next_event_index : 0 }
     }
 
-    pub fn add_solitaire_event(&mut self, time: N64, event: InternalEvent, key_set: &mut TightSet<EventKey>) {
+    pub fn add_solitaire_event(&mut self, time: f64, event: InternalEvent, key_set: &mut TightSet<EventKey>) {
         if let Some(key) = self.new_event_key(time, false) {
             assert!(self.events.insert(key, event).is_none(), "illegal state");
             assert!(key_set.insert(key), "illegal state");
         }
     }
-    
-    pub fn add_pair_event(&mut self, time: N64, event: InternalEvent, first_key_set: &mut TightSet<EventKey>,
+
+    pub fn add_pair_event(&mut self, time: f64, event: InternalEvent, first_key_set: &mut TightSet<EventKey>,
         second_key_set: &mut TightSet<EventKey>)
     {
         if let Some(key) = self.new_event_key(time, true) {
@@ -116,7 +117,7 @@ impl EventManager {
             assert!(second_key_set.insert(key), "illegal state");
         }
     }
-    
+
     pub fn clear_related_events<M: EventKeysMap>(&mut self, id: HitboxId, key_set: &mut TightSet<EventKey>, map: &mut M) {
         for key in key_set.iter() {
             let event = self.events.remove(key).unwrap();
@@ -126,8 +127,8 @@ impl EventManager {
         }
         key_set.clear();
     }
-    
-    fn new_event_key(&mut self, time: N64, for_pair: bool) -> Option<EventKey> {
+
+    fn new_event_key(&mut self, time: f64, for_pair: bool) -> Option<EventKey> {
         if time >= HIGH_TIME {
             None
         } else {
@@ -139,12 +140,12 @@ impl EventManager {
             Some(result)
         }
     }
-    
-    pub fn peek_time(&self) -> N64 {
-        self.peek_key().map_or(N64::infinity(), |key| key.time())
+
+    pub fn peek_time(&self) -> f64 {
+        self.peek_key().map_or(f64::INFINITY, |key| key.time())
     }
-    
-    pub fn next<M: EventKeysMap>(&mut self, time: N64, map: &mut M) -> Option<InternalEvent> {
+
+    pub fn next<M: EventKeysMap>(&mut self, time: f64, map: &mut M) -> Option<InternalEvent> {
         if let Some(key) = self.peek_key() {
             if key.time() == time {
                 let event = self.events.remove(&key).unwrap();
@@ -159,7 +160,7 @@ impl EventManager {
             None
         }
     }
-    
+
     fn peek_key(&self) -> Option<EventKey> {
         self.events.keys().next().map(|&key| key)
     }

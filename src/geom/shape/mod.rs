@@ -1,4 +1,4 @@
-// Copyright 2016 Matthew D. Michelotti
+// Copyright 2016-2017 Matthew D. Michelotti
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use std::ops::{Add, Sub, Mul, Neg};
-use float::*;
 use geom::{Vec2, DirVec2, vec2};
 
 mod normals;
@@ -36,9 +35,6 @@ pub struct Shape {
     dims: Vec2
 }
 
-#[cfg(feature = "noisy-floats")]
-impl Eq for Shape {}
-
 impl Shape {
     /// Constructs a new shape with the given `kind` and `dims` (width and height dimensions).
     ///
@@ -50,46 +46,38 @@ impl Shape {
 
     /// Constructs a new circle shape, using `diam` as the width and height.
     #[inline]
-    pub fn new_circle(diam: R64) -> Shape {
+    pub fn new_circle(diam: f64) -> Shape {
         Shape::new(ShapeKind::Circle, vec2(diam, diam))
     }
-    
+
     /// Constructs a new axis-aligned rectangle shape with the given `dims` (width and height dimensions).
     #[inline]
     pub fn new_rect(dims: Vec2) -> Shape {
         Shape::new(ShapeKind::Rect, dims)
     }
-    
+
     /// Constructs a new axis-aligned square shape with the given `width`.
     #[inline]
-    pub fn new_square(width: R64) -> Shape {
+    pub fn new_square(width: f64) -> Shape {
         Shape::new(ShapeKind::Rect, vec2(width, width))
     }
-    
+
     /// Returns the kind of shape.
     #[inline]
     pub fn kind(&self) -> ShapeKind {
         self.kind
     }
-    
+
     /// Returns the dims of the shape.
     #[inline]
     pub fn dims(&self) -> Vec2 {
         self.dims
     }
-    
+
     /// Returns a shape with width and height swapped.
     #[inline]
     pub fn turn(&self) -> Shape {
         Shape { kind : self.kind, dims : vec2(self.dims.y, self.dims.x) }
-    }
-}
-
-#[cfg(feature = "noisy-floats")]
-impl Mul<R64> for Shape {
-    type Output = Shape;
-    fn mul(self, rhs: R64) -> Shape {
-        Shape::new(self.kind, self.dims * rhs)
     }
 }
 
@@ -132,53 +120,50 @@ pub struct PlacedShape {
     pub shape: Shape
 }
 
-#[cfg(feature = "noisy-floats")]
-impl Eq for PlacedShape {}
-
 impl PlacedShape {
     /// Constructs a new `PlacedShape` with the given `pos` and `shape`.
     #[inline]
     pub fn new(pos: Vec2, shape: Shape) -> PlacedShape {
         PlacedShape { pos : pos, shape : shape }
     }
-    
+
     /// Shorthand for `self.shape.kind()`
     #[inline]
     pub fn kind(&self) -> ShapeKind {
         self.shape.kind()
     }
-    
+
     /// Shorthand for `self.shape.dims()`
     #[inline]
     pub fn dims(&self) -> Vec2 {
         self.shape.dims()
     }
-    
+
     /// Returns the lowest y coordinate of the `PlacedShape`.
-    pub fn bottom(&self) -> R64 {
+    pub fn bottom(&self) -> f64 {
         self.pos.y - self.shape.dims().y * 0.5
     }
-    
+
     /// Returns the lowest x coordinate of the `PlacedShape`.
-    pub fn left(&self) -> R64 {
+    pub fn left(&self) -> f64 {
         self.pos.x - self.shape.dims().x * 0.5
     }
-    
+
     /// Returns the highest y coordinate of the `PlacedShape`.
-    pub fn top(&self) -> R64 {
+    pub fn top(&self) -> f64 {
         self.pos.y + self.shape.dims().y * 0.5
     }
-    
+
     /// Returns the highest x coordinate of the `PlacedShape`.
-    pub fn right(&self) -> R64 {
+    pub fn right(&self) -> f64 {
         self.pos.x + self.shape.dims.x * 0.5
     }
-    
+
     /// Returns `true` if the two shapes overlap, subject to negligible numerical error.
     pub fn overlaps(&self, other: &PlacedShape) -> bool {
         self.normal_from(other).len() >= 0.0
     }
-    
+
     /// Returns a normal vector that points in the direction from `other` to `self`.
     ///
     /// The length of this vector is the minimum distance that `self` would need to
@@ -197,14 +182,6 @@ impl PlacedShape {
             (ShapeKind::Circle, ShapeKind::Rect) => normals::rect_circle_normal(other, self).flip(),
             (ShapeKind::Circle, ShapeKind::Circle) => normals::circle_circle_normal(self, other)
         }
-    }
-}
-
-#[cfg(feature = "noisy-floats")]
-impl Mul<R64> for PlacedShape {
-    type Output = PlacedShape;
-    fn mul(self, rhs: R64) -> PlacedShape {
-        PlacedShape::new(self.pos * rhs, self.shape * rhs)
     }
 }
 
@@ -270,7 +247,7 @@ mod tests {
     fn test_circle_rect_sub() {
         Shape::new_rect(vec2_f(1.0, 2.0)) - Shape::new_circle(r64(3.0));
     }
-    
+
     #[test]
     fn test_edges() {
         let shape = PlacedShape::new(vec2_f(3.0, 5.0), Shape::new_rect(vec2_f(4.0, 6.0)));
@@ -279,7 +256,7 @@ mod tests {
         assert!(shape.right() == 5.0);
         assert!(shape.top() == 8.0);
     }
-    
+
     #[test]
     fn test_rect_rect_normal() {
         let src = PlacedShape::new(vec2_f(1.0, 1.0), Shape::new_rect(vec2_f(4.0, 4.0)));
@@ -292,18 +269,18 @@ mod tests {
         let dst = PlacedShape::new(vec2_f(-2.0, -3.0), Shape::new_rect(vec2_f(8.0, 2.0)));
         assert!(dst.normal_from(&src) == DirVec2::new(vec2_f(0.0, -1.0), r64(-1.0)));
     }
-    
+
     #[test]
     fn test_circle_circle_normal() {
         let src = PlacedShape::new(vec2_f(1.0, 1.0), Shape::new_circle(r64(2.0)));
         let dst = PlacedShape::new(vec2_f(2.0, 0.0), Shape::new_circle(r64(3.0)));
         assert!(dst.normal_from(&src) == DirVec2::new(vec2_f(1.0, -1.0), r64(2.5 - (2.0f64).sqrt())));
     }
-    
+
     #[test]
     fn test_rect_circle_normal() {
         let src = PlacedShape::new(vec2_f(0.0, 0.0), Shape::new_rect(vec2_f(2.0, 2.0)));
-        
+
         let dst = PlacedShape::new(vec2_f(-2.0, 0.0), Shape::new_circle(r64(2.5)));
         assert!(dst.normal_from(&src) == DirVec2::new(vec2_f(-1.0, 0.0), r64(0.25)));
         let dst = PlacedShape::new(vec2_f(0.0, -2.0), Shape::new_circle(r64(2.5)));
@@ -312,7 +289,7 @@ mod tests {
         assert!(dst.normal_from(&src) == DirVec2::new(vec2_f(1.0, 0.0), r64(0.25)));
         let dst = PlacedShape::new(vec2_f(0.0, 2.0), Shape::new_circle(r64(2.5)));
         assert!(dst.normal_from(&src) == DirVec2::new(vec2_f(0.0, 1.0), r64(0.25)));
-        
+
         let dst = PlacedShape::new(vec2_f(-2.0, -2.0), Shape::new_circle(r64(2.5)));
         assert!(dst.normal_from(&src) == DirVec2::new(vec2_f(-1.0, -1.0), r64(1.25 - (2.0f64).sqrt())));
         let dst = PlacedShape::new(vec2_f(2.0, -2.0), Shape::new_circle(r64(2.5)));

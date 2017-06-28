@@ -1,4 +1,4 @@
-// Copyright 2016 Matthew D. Michelotti
+// Copyright 2016-2017 Matthew D. Michelotti
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,13 +41,6 @@
 //! since the hitboxes may be updated less frequently and still maintain a
 //! smooth appearance over time.
 //!
-//! Collider may be built with the `noisy-floats` feature, which will use the `R64` and `N64`
-//! types from the `noisy_float` crate in place of `f64` types.
-//! In either case, it is ultimately the user's responsibility to ensure
-//! that they do not do anything that will result in improper floating point overflow or NaN.
-//! For instructions for building a crate with a conditional feature,
-//! see http://doc.crates.io/specifying-dependencies.html#choosing-features.
-//!
 //! #Example
 //! ```
 //! use collider::{Collider, Hitbox, Event};
@@ -86,10 +79,6 @@
 //! //  Separate between hitbox 0 and hitbox 1 at time 13.01.
 //! ```
 
-//TODO when Rust 1.13 is released, change N64/R64 type aliases in the public API to macros, so that docs will just say f64 when compiled without noisy-floats, and update docs
-
-#[cfg(feature = "noisy-floats")]
-extern crate noisy_float;
 extern crate fnv;
 
 mod float;
@@ -126,15 +115,15 @@ mod tests {
     #[test]
     fn smoke_test() {
         let mut collider = Collider::new(r64(4.0), r64(0.25));
-        
+
         let mut hitbox = Hitbox::new(PlacedShape::new(vec2_f(-10.0, 0.0), Shape::new_square(r64(2.0))));
         hitbox.vel.pos = vec2_f(1.0, 0.0);
         collider.add_hitbox(0, hitbox);
-        
+
         let mut hitbox = Hitbox::new(PlacedShape::new(vec2_f(10.0, 0.0), Shape::new_circle(r64(2.0))));
         hitbox.vel.pos = vec2_f(-1.0, 0.0);
         collider.add_hitbox(1, hitbox);
-        
+
         advance_to_event(&mut collider, n64(9.0));
         assert!(collider.next() == Some((Event::Collide, 0, 1)));
         advance_to_event(&mut collider, n64(11.125));
@@ -145,17 +134,17 @@ mod tests {
     #[test]
     fn test_hitbox_updates() {
         let mut collider = Collider::new(r64(4.0), r64(0.25));
-        
+
         let mut hitbox = Hitbox::new(PlacedShape::new(vec2_f(-10.0, 0.0), Shape::new_square(r64(2.0))));
         hitbox.vel.pos = vec2_f(1.0, 0.0);
         collider.add_hitbox(0, hitbox);
-        
+
         let mut hitbox = Hitbox::new(PlacedShape::new(vec2_f(10.0, 0.0), Shape::new_circle(r64(2.0))));
         hitbox.vel.pos = vec2_f(1.0, 0.0);
         collider.add_hitbox(1, hitbox);
-        
+
         advance(&mut collider, n64(11.0));
-        
+
         let mut hitbox = collider.get_hitbox(0);
         assert!(hitbox.shape == PlacedShape::new(vec2_f(1.0, 0.0), Shape::new_square(r64(2.0))));
         assert!(hitbox.vel == PlacedShape::new(vec2_f(1.0, 0.0), Shape::new_square(r64(0.0))));
@@ -163,9 +152,9 @@ mod tests {
         hitbox.shape.pos = vec2_f(0.0, 2.0);
         hitbox.vel.pos = vec2_f(0.0, -1.0);
         collider.update_hitbox(0, hitbox);
-        
+
         advance(&mut collider, n64(14.0));
-        
+
         let mut hitbox = collider.get_hitbox(1);
         assert!(hitbox.shape == PlacedShape::new(vec2_f(24.0, 0.0), Shape::new_circle(r64(2.0))));
         assert!(hitbox.vel == PlacedShape::new(vec2_f(1.0, 0.0), Shape::new_circle(r64(0.0))));
@@ -173,9 +162,9 @@ mod tests {
         hitbox.shape.pos = vec2_f(0.0, -8.0);
         hitbox.vel.pos = vec2_f(0.0, 0.0);
         collider.update_hitbox(1, hitbox);
-        
+
         advance_to_event(&mut collider, n64(19.0));
-        
+
         assert!(collider.next() == Some((Event::Collide, 0, 1)));
         let mut hitbox = collider.get_hitbox(0);
         assert!(hitbox.shape == PlacedShape::new(vec2_f(0.0, -6.0), Shape::new_square(r64(2.0))));
@@ -183,33 +172,33 @@ mod tests {
         assert!(hitbox.end_time == f64::INFINITY);
         hitbox.vel.pos = vec2_f(0.0, 0.0);
         collider.update_hitbox(0, hitbox);
-        
+
         let mut hitbox = collider.get_hitbox(1);
         assert!(hitbox.shape == PlacedShape::new(vec2_f(0.0, -8.0), Shape::new_circle(r64(2.0))));
         assert!(hitbox.vel == PlacedShape::new(vec2_f(0.0, 0.0), Shape::new_circle(r64(0.0))));
         assert!(hitbox.end_time == f64::INFINITY);
         hitbox.vel.pos = vec2_f(0.0, 2.0);
         collider.update_hitbox(1, hitbox);
-        
+
         let hitbox = Hitbox::new(PlacedShape::new(vec2_f(0.0, 0.0), Shape::new_rect(vec2_f(2.0, 20.0))));
         collider.add_hitbox(2, hitbox);
-        
+
         assert!(collider.next_time() == collider.time());
         let (mut event_1, mut event_2) = (collider.next(), collider.next());
         if event_1.unwrap().1 == 1 { mem::swap(&mut event_1, &mut event_2); }
         assert!(event_1 == Some((Event::Collide, 0, 2)));
         assert!(event_2 == Some((Event::Collide, 1, 2)));
-        
+
         advance_to_event(&mut collider, n64(21.125));
-        
+
         assert!(collider.next() == Some((Event::Separate, 0, 1)));
-        
+
         advance(&mut collider, n64(26.125));
-        
+
         collider.remove_hitbox(1);
 
         advance(&mut collider, n64(37.125));
     }
-    
+
     //TODO test custom interactivities and interactivity changes...
 }
