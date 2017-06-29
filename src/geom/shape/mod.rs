@@ -215,42 +215,41 @@ impl Neg for PlacedShape {
 
 #[cfg(test)]
 mod tests {
-    use float::*;
     use geom::*;
 
     #[test]
     fn test_circle_ops() {
-        let shape_1 = PlacedShape::new(vec2_f(3.0, 5.0), Shape::new_circle(r64(2.0)));
-        let shape_2 = PlacedShape::new(vec2_f(1.0, 2.0), Shape::new_circle(r64(-1.0)));
-        let shape_3 = PlacedShape::new(vec2_f(-1.0, 3.0), Shape::new_circle(r64(4.0)));
-        let expected = PlacedShape::new(vec2_f(9.0, 10.0), Shape::new_circle(r64(3.0)));
+        let shape_1 = PlacedShape::new(vec2(3.0, 5.0), Shape::new_circle(2.0));
+        let shape_2 = PlacedShape::new(vec2(1.0, 2.0), Shape::new_circle(-1.0));
+        let shape_3 = PlacedShape::new(vec2(-1.0, 3.0), Shape::new_circle(4.0));
+        let expected = PlacedShape::new(vec2(9.0, 10.0), Shape::new_circle(3.0));
         assert!(shape_1 * 3.0 + -shape_2 - shape_3 == expected);
     }
 
     #[test]
     fn test_rect_ops() {
-        let shape_1 = PlacedShape::new(vec2_f(3.0, 5.0), Shape::new_rect(vec2_f(2.0, 5.0)));
-        let shape_2 = PlacedShape::new(vec2_f(1.0, 2.0), Shape::new_rect(vec2_f(-1.0, 2.0)));
-        let shape_3 = PlacedShape::new(vec2_f(-1.0, 3.0), Shape::new_rect(vec2_f(4.0, 1.0)));
-        let expected = PlacedShape::new(vec2_f(9.0, 10.0), Shape::new_rect(vec2_f(3.0, 12.0)));
+        let shape_1 = PlacedShape::new(vec2(3.0, 5.0), Shape::new_rect(vec2(2.0, 5.0)));
+        let shape_2 = PlacedShape::new(vec2(1.0, 2.0), Shape::new_rect(vec2(-1.0, 2.0)));
+        let shape_3 = PlacedShape::new(vec2(-1.0, 3.0), Shape::new_rect(vec2(4.0, 1.0)));
+        let expected = PlacedShape::new(vec2(9.0, 10.0), Shape::new_rect(vec2(3.0, 12.0)));
         assert!(shape_1*3.0 + -shape_2 - shape_3 == expected);
     }
 
     #[test]
     #[should_panic]
     fn test_circle_rect_add() {
-        Shape::new_rect(vec2_f(1.0, 2.0)) + Shape::new_circle(r64(3.0));
+        Shape::new_rect(vec2(1.0, 2.0)) + Shape::new_circle(3.0);
     }
 
     #[test]
     #[should_panic]
     fn test_circle_rect_sub() {
-        Shape::new_rect(vec2_f(1.0, 2.0)) - Shape::new_circle(r64(3.0));
+        Shape::new_rect(vec2(1.0, 2.0)) - Shape::new_circle(3.0);
     }
 
     #[test]
     fn test_edges() {
-        let shape = PlacedShape::new(vec2_f(3.0, 5.0), Shape::new_rect(vec2_f(4.0, 6.0)));
+        let shape = PlacedShape::new(vec2(3.0, 5.0), Shape::new_rect(vec2(4.0, 6.0)));
         assert!(shape.left() == 1.0);
         assert!(shape.bottom() == 2.0);
         assert!(shape.right() == 5.0);
@@ -259,44 +258,44 @@ mod tests {
 
     #[test]
     fn test_rect_rect_normal() {
-        let src = PlacedShape::new(vec2_f(1.0, 1.0), Shape::new_rect(vec2_f(4.0, 4.0)));
-        let dst = PlacedShape::new(vec2_f(2.0, 1.5), Shape::new_rect(vec2_f(8.0, 8.0)));
-        assert!(dst.normal_from(&src) == DirVec2::new(vec2_f(1.0, 0.0), r64(5.0)));
-        let dst = PlacedShape::new(vec2_f(0.0, 0.5), Shape::new_rect(vec2_f(8.0, 8.0)));
-        assert!(dst.normal_from(&src) == DirVec2::new(vec2_f(-1.0, 0.0), r64(5.0)));
-        let dst = PlacedShape::new(vec2_f(3.8, 4.0), Shape::new_rect(vec2_f(4.0, 2.0)));
-        assert!(dst.normal_from(&src) == DirVec2::new(vec2_f(0.0, 1.0), r64(0.0)));
-        let dst = PlacedShape::new(vec2_f(-2.0, -3.0), Shape::new_rect(vec2_f(8.0, 2.0)));
-        assert!(dst.normal_from(&src) == DirVec2::new(vec2_f(0.0, -1.0), r64(-1.0)));
+        let src = PlacedShape::new(vec2(1.0, 1.0), Shape::new_rect(vec2(4.0, 4.0)));
+        let dst = PlacedShape::new(vec2(2.0, 1.5), Shape::new_rect(vec2(8.0, 8.0)));
+        assert!(dst.normal_from(&src) == DirVec2::new(vec2(1.0, 0.0), 5.0));
+        let dst = PlacedShape::new(vec2(0.0, 0.5), Shape::new_rect(vec2(8.0, 8.0)));
+        assert!(dst.normal_from(&src) == DirVec2::new(vec2(-1.0, 0.0), 5.0));
+        let dst = PlacedShape::new(vec2(3.8, 4.0), Shape::new_rect(vec2(4.0, 2.0)));
+        assert!(dst.normal_from(&src) == DirVec2::new(vec2(0.0, 1.0), 0.0));
+        let dst = PlacedShape::new(vec2(-2.0, -3.0), Shape::new_rect(vec2(8.0, 2.0)));
+        assert!(dst.normal_from(&src) == DirVec2::new(vec2(0.0, -1.0), -1.0));
     }
 
     #[test]
     fn test_circle_circle_normal() {
-        let src = PlacedShape::new(vec2_f(1.0, 1.0), Shape::new_circle(r64(2.0)));
-        let dst = PlacedShape::new(vec2_f(2.0, 0.0), Shape::new_circle(r64(3.0)));
-        assert!(dst.normal_from(&src) == DirVec2::new(vec2_f(1.0, -1.0), r64(2.5 - (2.0f64).sqrt())));
+        let src = PlacedShape::new(vec2(1.0, 1.0), Shape::new_circle(2.0));
+        let dst = PlacedShape::new(vec2(2.0, 0.0), Shape::new_circle(3.0));
+        assert!(dst.normal_from(&src) == DirVec2::new(vec2(1.0, -1.0), 2.5 - (2.0f64).sqrt()));
     }
 
     #[test]
     fn test_rect_circle_normal() {
-        let src = PlacedShape::new(vec2_f(0.0, 0.0), Shape::new_rect(vec2_f(2.0, 2.0)));
+        let src = PlacedShape::new(vec2(0.0, 0.0), Shape::new_rect(vec2(2.0, 2.0)));
 
-        let dst = PlacedShape::new(vec2_f(-2.0, 0.0), Shape::new_circle(r64(2.5)));
-        assert!(dst.normal_from(&src) == DirVec2::new(vec2_f(-1.0, 0.0), r64(0.25)));
-        let dst = PlacedShape::new(vec2_f(0.0, -2.0), Shape::new_circle(r64(2.5)));
-        assert!(dst.normal_from(&src) == DirVec2::new(vec2_f(0.0, -1.0), r64(0.25)));
-        let dst = PlacedShape::new(vec2_f(2.0, 0.0), Shape::new_circle(r64(2.5)));
-        assert!(dst.normal_from(&src) == DirVec2::new(vec2_f(1.0, 0.0), r64(0.25)));
-        let dst = PlacedShape::new(vec2_f(0.0, 2.0), Shape::new_circle(r64(2.5)));
-        assert!(dst.normal_from(&src) == DirVec2::new(vec2_f(0.0, 1.0), r64(0.25)));
+        let dst = PlacedShape::new(vec2(-2.0, 0.0), Shape::new_circle(2.5));
+        assert!(dst.normal_from(&src) == DirVec2::new(vec2(-1.0, 0.0), 0.25));
+        let dst = PlacedShape::new(vec2(0.0, -2.0), Shape::new_circle(2.5));
+        assert!(dst.normal_from(&src) == DirVec2::new(vec2(0.0, -1.0), 0.25));
+        let dst = PlacedShape::new(vec2(2.0, 0.0), Shape::new_circle(2.5));
+        assert!(dst.normal_from(&src) == DirVec2::new(vec2(1.0, 0.0), 0.25));
+        let dst = PlacedShape::new(vec2(0.0, 2.0), Shape::new_circle(2.5));
+        assert!(dst.normal_from(&src) == DirVec2::new(vec2(0.0, 1.0), 0.25));
 
-        let dst = PlacedShape::new(vec2_f(-2.0, -2.0), Shape::new_circle(r64(2.5)));
-        assert!(dst.normal_from(&src) == DirVec2::new(vec2_f(-1.0, -1.0), r64(1.25 - (2.0f64).sqrt())));
-        let dst = PlacedShape::new(vec2_f(2.0, -2.0), Shape::new_circle(r64(2.5)));
-        assert!(dst.normal_from(&src) == DirVec2::new(vec2_f(1.0, -1.0), r64(1.25 - (2.0f64).sqrt())));
-        let dst = PlacedShape::new(vec2_f(-2.0, 2.0), Shape::new_circle(r64(2.5)));
-        assert!(dst.normal_from(&src) == DirVec2::new(vec2_f(-1.0, 1.0), r64(1.25 - (2.0f64).sqrt())));
-        let dst = PlacedShape::new(vec2_f(2.0, 2.0), Shape::new_circle(r64(2.5)));
-        assert!(dst.normal_from(&src) == DirVec2::new(vec2_f(1.0, 1.0), r64(1.25 - (2.0f64).sqrt())));
+        let dst = PlacedShape::new(vec2(-2.0, -2.0), Shape::new_circle(2.5));
+        assert!(dst.normal_from(&src) == DirVec2::new(vec2(-1.0, -1.0), 1.25 - (2.0f64).sqrt()));
+        let dst = PlacedShape::new(vec2(2.0, -2.0), Shape::new_circle(2.5));
+        assert!(dst.normal_from(&src) == DirVec2::new(vec2(1.0, -1.0), 1.25 - (2.0f64).sqrt()));
+        let dst = PlacedShape::new(vec2(-2.0, 2.0), Shape::new_circle(2.5));
+        assert!(dst.normal_from(&src) == DirVec2::new(vec2(-1.0, 1.0), 1.25 - (2.0f64).sqrt()));
+        let dst = PlacedShape::new(vec2(2.0, 2.0), Shape::new_circle(2.5));
+        assert!(dst.normal_from(&src) == DirVec2::new(vec2(1.0, 1.0), 1.25 - (2.0f64).sqrt()));
     }
 }

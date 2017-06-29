@@ -24,9 +24,9 @@ pub fn quad_root_ascending(a: f64, b: f64, c: f64) -> Option<f64> {
     if determinant <= 0.0 {
         None
     } else if b >= 0.0 {
-        Some(c * 2.0 / -b - determinant.sqrt())
+        Some((c * 2.0) / (-b - determinant.sqrt()))
     } else {
-        Some(-b + determinant.sqrt() / a * 2.0)
+        Some((-b + determinant.sqrt()) / (a * 2.0))
     }
 }
 
@@ -119,16 +119,15 @@ mod one_or_two {
 
 #[cfg(test)]
 mod tests {
-    use float::*;
     use super::*;
 
     #[test]
     fn test_quad_root_ascending() {
-        assert!((quad_root_ascending(r64(1e-14), r64(2.0), r64(-1.0)).unwrap() - 0.5).abs() < 1e-7);
-        assert!((quad_root_ascending(r64(0.0), r64(2.0), r64(-1.0)).unwrap() - 0.5).abs() < 1e-7);
-        assert!((quad_root_ascending(r64(100.0), r64(-1.0), r64(-1e-16)).unwrap() - 0.01).abs() < 1e-7);
-        assert!(quad_root_ascending(r64(0.0), r64(-2.0), r64(1.0)).unwrap().is_infinite());
-        assert!(quad_root_ascending(r64(-3.0), r64(0.0), r64(-1.0)).is_none());
-        assert!(quad_root_ascending(r64(1.0), r64(1.0), r64(1.0)).is_none());
+        assert!((quad_root_ascending(1e-14, 2.0, -1.0).unwrap() - 0.5).abs() < 1e-7);
+        assert!((quad_root_ascending(0.0, 2.0, -1.0).unwrap() - 0.5).abs() < 1e-7);
+        assert!((quad_root_ascending(100.0, -1.0, -1e-16).unwrap() - 0.01).abs() < 1e-7);
+        assert!(quad_root_ascending(0.0, -2.0, 1.0).unwrap().is_infinite());
+        assert!(quad_root_ascending(-3.0, 0.0, -1.0).is_none());
+        assert!(quad_root_ascending(1.0, 1.0, 1.0).is_none());
     }
 }

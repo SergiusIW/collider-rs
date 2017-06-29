@@ -87,8 +87,8 @@ impl Hitbox {
         let min_size = min_size * 0.9;
         assert!(self.shape.dims().x > min_size && self.shape.dims().y > min_size);
         let mut time = f64::INFINITY;
-        if self.vel.dims().x < 0.0 { time = time.min(min_size - self.shape.dims().x / self.vel.dims().x); }
-        if self.vel.dims().y < 0.0 { time = time.min(min_size - self.shape.dims().y / self.vel.dims().y); }
+        if self.vel.dims().x < 0.0 { time = time.min((min_size - self.shape.dims().x) / self.vel.dims().x); }
+        if self.vel.dims().y < 0.0 { time = time.min((min_size - self.shape.dims().y) / self.vel.dims().y); }
         time
     }
 
