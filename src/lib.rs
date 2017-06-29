@@ -83,7 +83,6 @@ extern crate fnv;
 
 mod float;
 pub mod geom;
-mod geom_ext;
 mod util;
 mod core;
 mod index_rect;

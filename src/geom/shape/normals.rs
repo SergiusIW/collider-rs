@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use geom::*;
-use geom_ext::*;
 use float::n64;
 
 pub fn rect_rect_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {

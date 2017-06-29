@@ -16,7 +16,6 @@ use std::f64;
 use core;
 use core::dur_hitbox::DurHitbox;
 use geom::*;
-use geom_ext::*;
 use util;
 
 pub fn collide_time(a: &DurHitbox, b: &DurHitbox) -> f64 {

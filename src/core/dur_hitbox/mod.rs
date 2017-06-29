@@ -16,7 +16,6 @@ mod solvers;
 
 use std::f64;
 use geom::*;
-use geom_ext::*;
 use core;
 
 #[derive(Clone)]

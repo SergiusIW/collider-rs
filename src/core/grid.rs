@@ -19,7 +19,6 @@ use std::cmp;
 use core::{HitboxId, Hitbox};
 use core::dur_hitbox::DurHitbox;
 use core::inter::Group;
-use geom_ext::PlacedShapeExt;
 use util::TightSet;
 use index_rect::IndexRect;
 
