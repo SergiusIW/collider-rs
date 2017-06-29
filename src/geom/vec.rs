@@ -27,7 +27,7 @@ impl Vec2 {
     /// Constructs a vector with the given `x` and `y` coordinates.
     #[inline]
     pub fn new(x: f64, y: f64) -> Vec2 {
-        Vec2 { x : x, y : y }
+        Vec2 { x: x, y: y }
     }
 
     /// Constructs a (0, 0) vector.
@@ -40,7 +40,7 @@ impl Vec2 {
     ///
     /// Due to underflow, this might be `0.0` even if `x` and `y` are non-zero but very small.
     pub fn len_sq(&self) -> f64 {
-        self.x*self.x + self.y*self.y
+        self.x * self.x + self.y * self.y
     }
 
     /// Computes the the Euclidean length of the vector.
@@ -57,7 +57,7 @@ impl Vec2 {
         if len == 0.0 {
             None
         } else {
-            Some(Vec2::new(self.x/len, self.y/len))
+            Some(Vec2::new(self.x / len, self.y / len))
             //TODO return self if len is near 1.0? (can re-normalizing a normalized vector change its value slightly?)
         }
     }
@@ -77,21 +77,21 @@ impl Vec2 {
     /// Using `ratio = 0.0` will return `self`, and using `ratio = 1.0` will return `other`.
     /// Can also extrapolate using `ratio > 1.0` or `ratio < 0.0`.
     pub fn lerp(&self, other: Vec2, ratio: f64) -> Vec2 {
-        *self * (-ratio + 1.0) + other * ratio
+        (1.0 - ratio) * *self + ratio * other
     }
 
     /// Rotates the vector by `angle` radians counter-clockwise (assuming +x is right and +y is up).
-    pub fn rotate_rad(&self, angle: f64) -> Vec2 {
+    pub fn rotate(&self, angle: f64) -> Vec2 {
         let sin = angle.sin();
         let cos = angle.cos();
         Vec2::new(cos * self.x - sin * self.y, sin * self.x + cos * self.y)
     }
+}
 
-    /// Rotates the vector by `angle` degrees counter-clockwise (assuming +x is right and +y is up).
-    ///
-    /// Angle is specified in degrees.
-    pub fn rotate_deg(&self, angle: f64) -> Vec2 {
-        self.rotate_rad(angle.to_radians())
+impl Mul<Vec2> for f64 {
+    type Output = Vec2;
+    fn mul(self, rhs: Vec2) -> Vec2 {
+        Vec2::new(self * rhs.x, self * rhs.y)
     }
 }
 
@@ -153,7 +153,7 @@ impl Neg for Vec2 {
 
 /// Shorthand for invoking the `Vec2` constructor.
 #[inline]
-pub fn vec2(x: f64, y: f64) -> Vec2 {
+pub fn v2(x: f64, y: f64) -> Vec2 {
     Vec2::new(x, y)
 }
 
@@ -176,7 +176,7 @@ impl DirVec2 {
     ///
     /// `dir` is normalized before being set.
     pub fn new(dir: Vec2, len: f64) -> DirVec2 {
-        DirVec2 { dir : dir.normalize().unwrap(), len : len }
+        DirVec2 { dir: dir.normalize().unwrap(), len: len }
     }
 
     /// Returns the direction as a unit vector.
@@ -193,7 +193,7 @@ impl DirVec2 {
 
     /// Returns a new vector with the same `len` but reversed `dir`.
     pub fn flip(&self) -> DirVec2 {
-        DirVec2 { dir : -self.dir, len : self.len }
+        DirVec2 { dir: -self.dir, len: self.len }
     }
 }
 

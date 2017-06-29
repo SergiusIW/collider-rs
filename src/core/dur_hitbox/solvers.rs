@@ -33,7 +33,7 @@ pub fn separate_time(a: &DurHitbox, b: &DurHitbox, padding: f64) -> f64 {
         _ => (a, b)
     };
     let mut a = a.clone();
-    a.shape.shape = Shape::new(a.shape.kind(), a.shape.dims() + vec2(padding, padding) * 2.0);
+    a.shape.shape = Shape::new(a.shape.kind(), a.shape.dims() + v2(padding, padding) * 2.0);
     time_unpadded(&a, b, false, a.duration.min(b.duration))
 }
 
