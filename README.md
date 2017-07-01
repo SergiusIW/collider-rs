@@ -44,16 +44,16 @@ smooth appearance over time.
 ### Example
 ```rust
 use collider::{Collider, Hitbox, Event};
-use collider::geom::{PlacedShape, Shape, vec2};
+use collider::geom::{Shape, v2};
 
 let mut collider: Collider = Collider::new(4.0, 0.01);
 
-let mut hitbox = Hitbox::new(PlacedShape::new(vec2(-10.0, 0.0), Shape::new_square(2.0)));
-hitbox.vel.pos = vec2(1.0, 0.0);
+let mut hitbox = Hitbox::new(Shape::square(2.0).place(v2(-10.0, 0.0)));
+hitbox.vel.pos = v2(1.0, 0.0);
 collider.add_hitbox(0, hitbox);
 
-let mut hitbox = Hitbox::new(PlacedShape::new(vec2(10.0, 0.0), Shape::new_square(2.0)));
-hitbox.vel.pos = vec2(-1.0, 0.0);
+let mut hitbox = Hitbox::new(Shape::square(2.0).place(v2(10.0, 0.0)));
+hitbox.vel.pos = v2(-1.0, 0.0);
 collider.add_hitbox(1, hitbox);
 
 while collider.time() < 20.0 {
@@ -73,10 +73,10 @@ while collider.time() < 20.0 {
     }
 }
 
-//the above loop prints the following events:
-//  Collide between hitbox 0 and hitbox 1 at time 9.
-//  Speed of collided hitboxes is halved.
-//  Separate between hitbox 0 and hitbox 1 at time 13.01.
+// the above loop prints the following events:
+//   Collide between hitbox 0 and hitbox 1 at time 9.
+//   Speed of collided hitboxes is halved.
+//   Separate between hitbox 0 and hitbox 1 at time 13.01.
 ```
 
 ### Homepage

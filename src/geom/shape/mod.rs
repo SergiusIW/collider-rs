@@ -269,7 +269,7 @@ mod tests {
     }
 
     #[test]
-    fn test_rect_advance() {
+    fn test_rect_ops() {
         let shape_1 = Shape::rect(v2(2.0, 5.0)).place(v2(3.0, 5.0));
         let shape_2 = Shape::rect(v2(-0.25, 1.0)).place(v2(1.0, 2.0));
         assert!(shape_1.advance(&shape_2, 2.0) == Shape::rect(v2(1.5, 7.0)).place(v2(5.0, 9.0)));

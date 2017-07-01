@@ -73,10 +73,10 @@
 //!     }
 //! }
 //!
-//! //the above loop prints the following events:
-//! //  Collide between hitbox 0 and hitbox 1 at time 9.
-//! //  Speed of collided hitboxes is halved.
-//! //  Separate between hitbox 0 and hitbox 1 at time 13.01.
+//! // the above loop prints the following events:
+//! //   Collide between hitbox 0 and hitbox 1 at time 9.
+//! //   Speed of collided hitboxes is halved.
+//! //   Separate between hitbox 0 and hitbox 1 at time 13.01.
 //! ```
 
 extern crate fnv;
