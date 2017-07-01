@@ -116,11 +116,11 @@ fn rect_circle_separate_time(rect: &DurHitbox, circle: &DurHitbox) -> f64 {
 
     let mut rect = rect.clone();
     rect.shape = rect.advanced_shape(base_time);
-    rect.vel = -rect.vel;
+    rect.vel = rect.vel.negate();
 
     let mut circle = circle.clone();
     circle.shape = circle.advanced_shape(base_time);
-    circle.vel = -circle.vel;
+    circle.vel = circle.vel.negate();
 
     (base_time - rebased_rect_circle_collide_time(&rect, &circle)).max(0.0)
 }
@@ -128,7 +128,7 @@ fn rect_circle_separate_time(rect: &DurHitbox, circle: &DurHitbox) -> f64 {
 fn rebased_rect_circle_collide_time(rect: &DurHitbox, circle: &DurHitbox) -> f64 {
     let sector = rect.shape.sector(circle.shape.pos);
     if sector.is_corner() {
-        let mut corner = DurHitbox::new(PlacedShape::new(rect.shape.corner(sector), Shape::new_circle(0.0)));
+        let mut corner = DurHitbox::new(PlacedShape::new(rect.shape.corner(sector), Shape::circle(0.0)));
         corner.vel.pos = rect.vel.corner(sector);
         circle_circle_time(&corner, circle, true)
     } else {

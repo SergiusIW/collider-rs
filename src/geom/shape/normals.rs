@@ -33,7 +33,7 @@ pub fn circle_circle_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {
 pub fn rect_circle_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {
     let sector = dst.sector(src.pos);
     if sector.is_corner() {
-        circle_circle_normal(&PlacedShape::new(dst.corner(sector), Shape::new_circle(0.0)), src)
+        circle_circle_normal(&PlacedShape::new(dst.corner(sector), Shape::circle(0.0)), src)
     } else {
         rect_rect_normal(dst, src)
     }

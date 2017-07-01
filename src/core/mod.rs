@@ -66,15 +66,15 @@ impl Hitbox {
     /// Constructs a new hitbox with the given `shape` and a `vel` of zero and `duration` of infinity.
     pub fn new(shape: PlacedShape) -> Hitbox {
         Hitbox {
-            shape : shape,
-            vel : PlacedShape::new(Vec2::zero(), Shape::new(shape.kind(), Vec2::zero())),
-            end_time : f64::INFINITY
+            shape: shape,
+            vel: PlacedShape::new(Vec2::zero(), Shape::new(shape.kind(), Vec2::zero())),
+            end_time: f64::INFINITY,
         }
     }
 
     fn advanced_shape(&self, time: f64) -> PlacedShape {
         assert!(time < HIGH_TIME, "requires time < {}", HIGH_TIME);
-        self.shape + self.vel * time
+        self.shape.advance(&self.vel, time)
     }
 
     fn validate(&self, min_size: f64, present_time: f64) {
