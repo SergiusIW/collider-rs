@@ -60,8 +60,8 @@ while collider.time() < 20.0 {
     let time = collider.next_time().min(20.0);
     collider.set_time(time);
     if let Some((event, id1, id2)) = collider.next() {
-        println!("{:?} between hitbox {} and hitbox {} at time {}.", event, id1, id2, collider.time());
-
+        println!("{:?} between hitbox {} and hitbox {} at time {}.",
+                 event, id1, id2, collider.time());
         if event == Event::Collide {
             println!("Speed of collided hitboxes is halved.");
             for id in [id1, id2].iter().cloned() {

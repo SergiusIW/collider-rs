@@ -75,6 +75,7 @@ impl Shape {
         self.dims
     }
 
+    /// Shorthand for `PlacedShape::new(pos, self)`.
     pub fn place(self, pos: Vec2) -> PlacedShape {
         PlacedShape::new(pos, self)
     }
