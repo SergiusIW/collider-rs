@@ -161,22 +161,22 @@ impl PlacedShape {
         }
     }
 
-    /// Creates a hitbox using this shape and the given movement velocity.
+    /// Shorthand for `Hitbox::new(self, HbVel::moving(vel))`.
     pub fn moving(self, vel: Vec2) -> Hitbox {
         Hitbox::new(self, HbVel::moving(vel))
     }
 
-    /// Creates a hitbox using this shape and the given movement velocity and `end_time`.
+    /// Shorthand for `Hitbox::new(self, HbVel::moving_until(vel, end_time))`.
     pub fn moving_until(self, vel: Vec2, end_time: f64) -> Hitbox {
         Hitbox::new(self, HbVel::moving_until(vel, end_time))
     }
 
-    /// Creates a stationary hitbox using this shape.
+    /// Shorthand for `Hitbox::new(self, HbVel::still())`.
     pub fn still(self) -> Hitbox {
         Hitbox::new(self, HbVel::still())
     }
 
-    /// Creates a stationary hitbox using this shape and the given `end_time`.
+    /// Shorthand for `Hitbox::new(self, HbVel::still_until(end_time))`.
     pub fn still_until(self, end_time: f64) -> Hitbox {
         Hitbox::new(self, HbVel::still_until(end_time))
     }

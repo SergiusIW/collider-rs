@@ -19,6 +19,9 @@ use geom::*;
 use geom::shape::PlacedBounds;
 use util;
 
+// This module contains methods to solve for the collision/separation time
+// of two hitboxes.
+
 pub fn collide_time(a: &DurHitbox, b: &DurHitbox) -> f64 {
     let duration = a.vel.duration.min(b.vel.duration);
     if a.bounding_box_for(duration).overlaps(&b.bounding_box_for(duration)) {

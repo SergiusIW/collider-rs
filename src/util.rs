@@ -19,6 +19,7 @@ use std::hash::Hash;
 
 pub use self::one_or_two::OneOrTwo;
 
+// returns the ascending root of a quadratic polynomial ax^2 + bx + c
 pub fn quad_root_ascending(a: f64, b: f64, c: f64) -> Option<f64> {
     let determinant = b * b - a * c * 4.0;
     if determinant <= 0.0 {
@@ -32,6 +33,7 @@ pub fn quad_root_ascending(a: f64, b: f64, c: f64) -> Option<f64> {
 
 const MIN_TIGHT_SET_CAPACITY: usize = 4;
 
+// a HashSet that will automatically shrink down in capacity to save space
 #[derive(Clone)]
 pub struct TightSet<T: Hash + Eq> {
     set: FnvHashSet<T>
@@ -79,6 +81,7 @@ impl <T: Hash + Eq> TightSet<T> {
     }
 }
 
+// a sequence of size 1 or 2 that may be iterated over and is not heap-allocated
 mod one_or_two {
     pub enum OneOrTwo<T: Copy + Eq> {
         One(T),

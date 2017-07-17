@@ -16,6 +16,9 @@ use geom::*;
 use geom::shape::PlacedBounds;
 use float::n64;
 
+// This module contains methods to solve for the normal between two
+// PlacedShapes.
+
 pub fn rect_rect_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {
     let (card, overlap) = Card::vals().iter()
         .map(|&card| (card, dst.card_overlap(src, card)))

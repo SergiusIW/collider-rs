@@ -23,6 +23,9 @@ use util::TightSet;
 use index_rect::IndexRect;
 use geom::shape::PlacedBounds;
 
+// Grid is a sparse 2D grid implemented as a HashMap. This is used as the
+// pruning method to decide which hitboxes to check for collisions.
+
 //TODO add unit tests for Grid
 
 #[derive(PartialEq, Eq, Copy, Clone, Hash)]

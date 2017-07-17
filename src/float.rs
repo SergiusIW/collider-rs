@@ -15,6 +15,8 @@
 use std::f64;
 use std::cmp::Ordering;
 
+// N64 wraps a non-NaN f64 value and implements Ord.
+
 pub fn n64(val: f64) -> N64 { N64::new(val) }
 
 #[derive(PartialEq, PartialOrd, Copy, Clone, Default)]

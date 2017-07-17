@@ -19,6 +19,11 @@ use geom::*;
 use geom::shape::PlacedBounds;
 use core;
 
+// DurHitbox (and DurHbVel) is almost identical to Hitbox (and HbVel), except
+// it uses a `duration` (amount of time until invalidation of the hitbox)
+// rather than an `end_time` (time of the invalidation of the hitbox). This
+// new struct is meant to make that distinction clear.
+
 #[derive(Clone)]
 pub struct DurHbVel {
     pub value: Vec2,
@@ -61,10 +66,7 @@ pub struct DurHitbox {
 
 impl DurHitbox {
     pub fn new(value: PlacedShape) -> DurHitbox {
-        DurHitbox {
-            value: value,
-            vel: DurHbVel::still(),
-        }
+        DurHitbox { value, vel: DurHbVel::still() }
     }
 
     pub fn advanced_shape(&self, time: f64) -> PlacedShape {

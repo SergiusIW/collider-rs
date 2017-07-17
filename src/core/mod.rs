@@ -30,7 +30,7 @@ const HIGH_TIME: f64 = 1e50;
 /// Type used as a handle for referencing hitboxes in a `Collider` instance.
 pub type HitboxId = u64;
 
-// Velocity information describing how a hitbox shape is changing over time.
+/// Velocity information describing how a hitbox shape is changing over time.
 #[derive(PartialEq, Clone, Debug)]
 pub struct HbVel {
     /// The movement velocity of the hitbox.

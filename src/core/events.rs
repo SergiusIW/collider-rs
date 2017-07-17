@@ -20,6 +20,9 @@ use float::n64;
 use core::{HitboxId, HIGH_TIME};
 use util::{TightSet, OneOrTwo};
 
+// This module contains Collider events that are queued to occur at given
+// simulation times. The EventManager can queue and cancel these events.
+
 const PAIR_BASE: u64 = 0x8000_0000_0000_0000;
 
 #[derive(Copy, Clone)]

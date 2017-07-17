@@ -1,4 +1,4 @@
-// Copyright 2016 Matthew D. Michelotti
+// Copyright 2016-2017 Matthew D. Michelotti
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,22 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// IndexRect represents a non-empty rectangular index range in a 2-D grid.
+
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub struct IndexRect {
     start: (i32, i32),
-    end: (i32, i32)
+    end: (i32, i32),
 }
 
 impl IndexRect {
+    // start is inclusive, end is exclusive
     pub fn new(start: (i32, i32), end: (i32, i32)) -> IndexRect {
         assert!(start.0 < end.0 && start.1 < end.1, "IndexRect contains no elements");
         IndexRect { start : start, end : end }
     }
-    
+
     pub fn iter(self) -> Iter {
         Iter::new(self)
     }
-    
+
     pub fn contains(self, val: (i32, i32)) -> bool {
         val.0 >= self.start.0 && val.0 < self.end.0 && val.1 >= self.start.1 && val.1 < self.end.1
     }
@@ -71,7 +74,7 @@ impl Iterator for Iter {
 mod tests {
     use super::*;
     use std::collections::HashSet;
-    
+
     #[test]
     fn test_iterator() {
         let rect = IndexRect::new((2,3), (5, 7));
@@ -83,7 +86,7 @@ mod tests {
         }
         assert!(set.len() == 12);
     }
-    
+
     #[test]
     fn test_contains() {
         let rect = IndexRect::new((2,3),(5,7));
@@ -94,19 +97,19 @@ mod tests {
         assert!(!rect.contains((5,6)));
         assert!(!rect.contains((4,7)));
     }
-    
+
     #[test]
     #[should_panic]
     fn test_new_bad_x() {
         IndexRect::new((4, -5), (4, -4));
     }
-    
+
     #[test]
     #[should_panic]
     fn test_new_bad_y() {
         IndexRect::new((4, -5), (5, -5));
     }
-    
+
     #[test]
     fn test_new() {
         IndexRect::new((4, -5), (5, -4));
