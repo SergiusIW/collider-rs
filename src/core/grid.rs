@@ -21,6 +21,7 @@ use core::dur_hitbox::DurHitbox;
 use core::inter::Group;
 use util::TightSet;
 use index_rect::IndexRect;
+use geom::shape::PlacedBounds;
 
 //TODO add unit tests for Grid
 

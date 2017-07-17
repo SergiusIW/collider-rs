@@ -288,25 +288,25 @@ impl <I: Interactivity> Collider<I> {
 
     #[cfg(debug_assertions)]
     fn solitaire_event_check(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo<I>, has_group: bool) {
-        hitbox_info.pub_end_time = hitbox_info.hitbox.end_time;
+        hitbox_info.pub_end_time = hitbox_info.hitbox.vel.end_time;
         let mut result = (self.time + self.grid.cell_period(&hitbox_info.hitbox, has_group), InternalEvent::Reiterate(id));
-        let end_time = hitbox_info.hitbox.end_time;
+        let end_time = hitbox_info.hitbox.vel.end_time;
         if end_time < result.0 { result = (end_time, InternalEvent::PanicDurationPassed(id)); }
         let end_time = self.time + hitbox_info.hitbox.time_until_too_small(self.padding);
         if end_time < result.0 { result = (end_time, InternalEvent::PanicSmallHitbox(id)); }
-        hitbox_info.hitbox.end_time = result.0;
+        hitbox_info.hitbox.vel.end_time = result.0;
         self.events.add_solitaire_event(result.0, result.1, &mut hitbox_info.event_keys);
     }
 
     #[cfg(not(debug_assertions))]
     fn solitaire_event_check(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo<I>, has_group: bool) {
-        hitbox_info.pub_end_time = hitbox_info.hitbox.end_time;
+        hitbox_info.pub_end_time = hitbox_info.hitbox.vel.end_time;
         let mut result = (self.time + self.grid.cell_period(&hitbox_info.hitbox, has_group), true);
-        let end_time = hitbox_info.hitbox.end_time;
+        let end_time = hitbox_info.hitbox.vel.end_time;
         if end_time < result.0 { result = (end_time, false); }
         let end_time = self.time + hitbox_info.hitbox.time_until_too_small(self.padding);
         if end_time < result.0 { result = (end_time, false); }
-        hitbox_info.hitbox.end_time = result.0;
+        hitbox_info.hitbox.vel.end_time = result.0;
         if result.1 { self.events.add_solitaire_event(result.0, InternalEvent::Reiterate(id), &mut hitbox_info.event_keys); }
     }
 }
@@ -342,7 +342,7 @@ impl <I: Interactivity> HitboxInfo<I> {
     fn new(hitbox: Hitbox, interactivity: I, start_time: f64) -> HitboxInfo<I> {
         HitboxInfo {
             interactivity: interactivity,
-            pub_end_time: hitbox.end_time,
+            pub_end_time: hitbox.vel.end_time,
             hitbox: hitbox,
             start_time: start_time,
             event_keys: TightSet::new(),
@@ -351,17 +351,17 @@ impl <I: Interactivity> HitboxInfo<I> {
     }
 
     fn hitbox_at_time(&self, time: f64) -> DurHitbox {
-        assert!(time >= self.start_time && time <= self.hitbox.end_time, "invalid time");
+        assert!(time >= self.start_time && time <= self.hitbox.vel.end_time, "invalid time");
         let mut result = self.hitbox.clone();
-        result.shape = result.advanced_shape(time - self.start_time);
+        result.value = result.advanced_shape(time - self.start_time);
         result.to_dur_hitbox(time)
     }
 
     fn pub_hitbox_at_time(&self, time: f64) -> Hitbox {
         assert!(time >= self.start_time && time <= self.pub_end_time, "invalid time");
         let mut result = self.hitbox.clone();
-        result.end_time = self.pub_end_time;
-        result.shape = result.advanced_shape(time - self.start_time);
+        result.vel.end_time = self.pub_end_time;
+        result.value = result.advanced_shape(time - self.start_time);
         result
     }
 }

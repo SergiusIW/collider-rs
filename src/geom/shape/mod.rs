@@ -13,7 +13,9 @@
 // limitations under the License.
 
 use std::cmp::Ordering;
+
 use geom::{Vec2, DirVec2, v2, Card};
+use core::{Hitbox, HbVel};
 use float::n64;
 
 mod normals;
@@ -39,9 +41,18 @@ pub struct Shape {
 impl Shape {
     /// Constructs a new shape with the given `kind` and `dims` (width and height dimensions).
     ///
+    /// Dimensions must be non-negative.
     /// If `kind` is `Circle`, then the width and height must match.
     pub fn new(kind: ShapeKind, dims: Vec2) -> Shape {
-        assert!(kind == ShapeKind::Rect || dims.x == dims.y, "circle width must equal height");
+        assert!(dims.x >= 0.0 && dims.y >= 0.0, "dims must be non-negative");
+        Shape::with_any_dims(kind, dims)
+    }
+
+    // allows negative dims
+    fn with_any_dims(kind: ShapeKind, dims: Vec2) -> Shape {
+        if kind == ShapeKind::Circle {
+            assert!(dims.x == dims.y, "circle width must equal height");
+        }
         Shape { kind: kind, dims: dims }
     }
 
@@ -80,13 +91,8 @@ impl Shape {
         PlacedShape::new(pos, self)
     }
 
-    pub(crate) fn negate(&self) -> Shape {
-        Shape::new(self.kind, -self.dims)
-    }
-
-    pub(crate) fn advance(&self, vel: &Shape, elapsed: f64) -> Shape {
-        assert!(self.kind == vel.kind, "shape kinds do not match");
-        Shape::new(self.kind, self.dims + vel.dims * elapsed)
+    pub(crate) fn advance(&self, resize_vel: Vec2, elapsed: f64) -> Shape {
+        Shape::with_any_dims(self.kind, self.dims + resize_vel * elapsed)
     }
 }
 
@@ -119,24 +125,16 @@ impl PlacedShape {
     }
 
     /// Returns the lowest y coordinate of the `PlacedShape`.
-    pub fn bottom(&self) -> f64 {
-        self.pos.y - self.shape.dims().y * 0.5
-    }
+    pub fn bottom(&self) -> f64 { self.bounds_bottom() }
 
     /// Returns the lowest x coordinate of the `PlacedShape`.
-    pub fn left(&self) -> f64 {
-        self.pos.x - self.shape.dims().x * 0.5
-    }
+    pub fn left(&self) -> f64 { self.bounds_left() }
 
     /// Returns the highest y coordinate of the `PlacedShape`.
-    pub fn top(&self) -> f64 {
-        self.pos.y + self.shape.dims().y * 0.5
-    }
+    pub fn top(&self) -> f64 { self.bounds_top() }
 
     /// Returns the highest x coordinate of the `PlacedShape`.
-    pub fn right(&self) -> f64 {
-        self.pos.x + self.shape.dims.x * 0.5
-    }
+    pub fn right(&self) -> f64 { self.bounds_right() }
 
     /// Returns `true` if the two shapes overlap, subject to negligible numerical error.
     pub fn overlaps(&self, other: &PlacedShape) -> bool {
@@ -163,32 +161,30 @@ impl PlacedShape {
         }
     }
 
+    /// Creates a hitbox using this shape and the given movement velocity.
+    pub fn moving(self, vel: Vec2) -> Hitbox {
+        Hitbox::new(self, HbVel::moving(vel))
+    }
+
+    /// Creates a hitbox using this shape and the given movement velocity and `end_time`.
+    pub fn moving_until(self, vel: Vec2, end_time: f64) -> Hitbox {
+        Hitbox::new(self, HbVel::moving_until(vel, end_time))
+    }
+
+    /// Creates a stationary hitbox using this shape.
+    pub fn still(self) -> Hitbox {
+        Hitbox::new(self, HbVel::still())
+    }
+
+    /// Creates a stationary hitbox using this shape and the given `end_time`.
+    pub fn still_until(self, end_time: f64) -> Hitbox {
+        Hitbox::new(self, HbVel::still_until(end_time))
+    }
+
     pub(crate) fn sector(&self, point: Vec2) -> Sector {
         let x = interval_sector(self.left(), self.right(), point.x);
         let y = interval_sector(self.bottom(), self.top(), point.y);
         Sector::new(x, y)
-    }
-
-    pub(crate) fn corner(&self, sector: Sector) -> Vec2 {
-        let x = match sector.x {
-            Ordering::Less => self.left(),
-            Ordering::Greater => self.right(),
-            Ordering::Equal => panic!("expected corner sector")
-        };
-        let y = match sector.y {
-            Ordering::Less => self.bottom(),
-            Ordering::Greater => self.top(),
-            Ordering::Equal => panic!("expected corner sector")
-        };
-        v2(x, y)
-    }
-
-    pub(crate) fn card_overlap(&self, src: &PlacedShape, card: Card) -> f64 {
-        edge(src, card) + edge(self, card.flip())
-    }
-
-    pub(crate) fn is_zero(&self) -> bool {
-        self.pos == Vec2::zero() && self.shape.dims() == Vec2::zero()
     }
 
     pub(crate) fn as_rect(&self) -> PlacedShape {
@@ -206,29 +202,58 @@ impl PlacedShape {
         PlacedShape::new(pos, shape)
     }
 
-    pub(crate) fn max_edge(&self) -> f64 {
+    pub(crate) fn advance(&self, vel: Vec2, resize_vel: Vec2, elapsed: f64) -> PlacedShape {
+        PlacedShape::new(self.pos + vel * elapsed, self.shape.advance(resize_vel, elapsed))
+    }
+}
+
+pub(crate) trait PlacedBounds {
+    fn bounds_center(&self) -> &Vec2;
+    fn bounds_dims(&self) -> &Vec2;
+
+    fn bounds_bottom(&self) -> f64 { self.bounds_center().y - self.bounds_dims().y * 0.5 }
+    fn bounds_left(&self) -> f64 { self.bounds_center().x - self.bounds_dims().x * 0.5 }
+    fn bounds_top(&self) -> f64 { self.bounds_center().y + self.bounds_dims().y * 0.5 }
+    fn bounds_right(&self) -> f64 { self.bounds_center().x + self.bounds_dims().x * 0.5 }
+
+    fn edge(&self, card: Card) -> f64 {
+        match card {
+            Card::Bottom => -self.bounds_bottom(),
+            Card::Left => -self.bounds_left(),
+            Card::Top => self.bounds_top(),
+            Card::Right => self.bounds_right(),
+        }
+    }
+
+    fn max_edge(&self) -> f64 {
         Card::vals().iter()
-                    .map(|&card| edge(self, card).abs())
+                    .map(|&card| self.edge(card).abs())
                     .max_by_key(|&edge| n64(edge))
                     .unwrap()
     }
 
-    pub(crate) fn negate(&self) -> PlacedShape {
-        PlacedShape::new(-self.pos, self.shape.negate())
+    fn card_overlap(&self, src: &Self, card: Card) -> f64 {
+        src.edge(card) + self.edge(card.flip())
     }
 
-    pub(crate) fn advance(&self, vel: &PlacedShape, elapsed: f64) -> PlacedShape {
-        PlacedShape::new(self.pos + vel.pos * elapsed, self.shape.advance(&vel.shape, elapsed))
+    fn corner(&self, sector: Sector) -> Vec2 {
+        let x = match sector.x {
+            Ordering::Less => self.bounds_left(),
+            Ordering::Greater => self.bounds_right(),
+            Ordering::Equal => panic!("expected corner sector")
+        };
+        let y = match sector.y {
+            Ordering::Less => self.bounds_bottom(),
+            Ordering::Greater => self.bounds_top(),
+            Ordering::Equal => panic!("expected corner sector")
+        };
+        v2(x, y)
     }
 }
 
-fn edge(shape: &PlacedShape, card: Card) -> f64 {
-    match card {
-        Card::Bottom => -shape.bottom(),
-        Card::Left => -shape.left(),
-        Card::Top => shape.top(),
-        Card::Right => shape.right()
-    }
+impl PlacedBounds for PlacedShape {
+    fn bounds_center(&self) -> &Vec2 { &self.pos }
+    fn bounds_dims(&self) -> &Vec2 { &self.shape.dims }
 }
 
 fn interval_sector(left: f64, right: f64, val: f64) -> Ordering {
@@ -262,25 +287,22 @@ mod tests {
     use geom::*;
 
     #[test]
-    fn test_circle_ops() {
+    fn test_circle_advance() {
         let shape_1 = Shape::circle(2.0).place(v2(3.0, 5.0));
-        let shape_2 = Shape::circle(-0.25).place(v2(1.0, 2.0));
-        assert!(shape_1.advance(&shape_2, 2.0) == Shape::circle(1.5).place(v2(5.0, 9.0)));
-        assert!(shape_1.negate() == Shape::circle(-2.0).place(v2(-3.0, -5.0)));
+        assert!(shape_1.advance(v2(1.0, 2.0), v2(-0.25, -0.25), 2.0) == Shape::circle(1.5).place(v2(5.0, 9.0)));
     }
 
     #[test]
-    fn test_rect_ops() {
+    fn test_rect_advance() {
         let shape_1 = Shape::rect(v2(2.0, 5.0)).place(v2(3.0, 5.0));
-        let shape_2 = Shape::rect(v2(-0.25, 1.0)).place(v2(1.0, 2.0));
-        assert!(shape_1.advance(&shape_2, 2.0) == Shape::rect(v2(1.5, 7.0)).place(v2(5.0, 9.0)));
-        assert!(shape_1.negate() == Shape::rect(v2(-2.0, -5.0)).place(v2(-3.0, -5.0)));
+        assert!(shape_1.advance(v2(1.0, 2.0), v2(-0.25, 1.0), 2.0) == Shape::rect(v2(1.5, 7.0)).place(v2(5.0, 9.0)));
     }
 
     #[test]
     #[should_panic]
-    fn test_circle_rect_advance() {
-        Shape::rect(v2(1.0, 2.0)).advance(&Shape::circle(3.0), 2.0);
+    fn test_illegal_circle_advance() {
+        let shape = Shape::circle(2.0).place(v2(3.0, 5.0));
+        shape.advance(v2(1.0, 2.0), v2(-0.25, -0.24), 2.0);
     }
 
     #[test]

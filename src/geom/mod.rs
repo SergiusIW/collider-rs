@@ -14,10 +14,10 @@
 
 //! Module containing geometry primitives.
 
-mod shape;
+pub(crate) mod shape;
 mod vec;
 
-pub use self::shape::*;
+pub use self::shape::{ShapeKind, Shape, PlacedShape};
 pub use self::vec::*;
 
 #[derive(PartialEq, Eq, Copy, Clone)]

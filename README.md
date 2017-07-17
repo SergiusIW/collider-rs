@@ -43,18 +43,13 @@ smooth appearance over time.
 
 ### Example
 ```rust
-use collider::{Collider, Hitbox, Event};
+use collider::{Collider, Event};
 use collider::geom::{Shape, v2};
 
 let mut collider: Collider = Collider::new(4.0, 0.01);
 
-let mut hitbox = Hitbox::new(Shape::square(2.0).place(v2(-10.0, 0.0)));
-hitbox.vel.pos = v2(1.0, 0.0);
-collider.add_hitbox(0, hitbox);
-
-let mut hitbox = Hitbox::new(Shape::square(2.0).place(v2(10.0, 0.0)));
-hitbox.vel.pos = v2(-1.0, 0.0);
-collider.add_hitbox(1, hitbox);
+collider.add_hitbox(0, Shape::square(2.0).place(v2(-10.0, 0.0)).moving(v2(1.0, 0.0)));
+collider.add_hitbox(1, Shape::square(2.0).place(v2(10.0, 0.0)).moving(v2(-1.0, 0.0)));
 
 while collider.time() < 20.0 {
     let time = collider.next_time().min(20.0);
@@ -66,7 +61,7 @@ while collider.time() < 20.0 {
             println!("Speed of collided hitboxes is halved.");
             for id in [id1, id2].iter().cloned() {
                 let mut hitbox = collider.get_hitbox(id);
-                hitbox.vel.pos *= 0.5;
+                hitbox.vel.value *= 0.5;
                 collider.update_hitbox(id, hitbox);
             }
         }

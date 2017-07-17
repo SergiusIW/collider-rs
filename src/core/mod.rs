@@ -22,32 +22,27 @@ pub use self::collider::*;
 use std::f64;
 
 use geom::*;
-use self::dur_hitbox::DurHitbox;
+use geom::shape::PlacedBounds;
+use self::dur_hitbox::{DurHitbox, DurHbVel};
 
 const HIGH_TIME: f64 = 1e50;
 
 /// Type used as a handle for referencing hitboxes in a `Collider` instance.
 pub type HitboxId = u64;
 
-/// Represents a moving shape for continuous collision testing.
+// Velocity information describing how a hitbox shape is changing over time.
 #[derive(PartialEq, Clone, Debug)]
-pub struct Hitbox {
-    /// The placed shape `shape` at the given point in time.
-    ///
-    /// The width and height of the shape must be greater than `padding` (in the `Collider` constructor)
-    /// at all times.
-    pub shape: PlacedShape,
+pub struct HbVel {
+    /// The movement velocity of the hitbox.
+    pub value: Vec2,
 
-    /// A velocity that describes how the shape is changing over time.
-    ///
-    /// The `vel` may include the velocity of the width and height of the `shape` as
-    /// well as the velocity of the position.
+    /// A velocity describing how the hitbox dims are changing over time.
     ///
     /// Since the width and height of the shape is greater than `padding` at all times,
-    /// if a shape velocity is set that decreases the dimensions of the shape over time,
+    /// if a resize velocity is set that decreases the dimensions of the shape over time,
     /// then the user is responsible for ensuring that the shape will not decrease below this threshold.
-    /// Collider will catch such mistakes in unoptimized builds.
-    pub vel: PlacedShape,
+    /// Collider may panic if this is violated.
+    pub resize: Vec2,
 
     /// An upper-bound on the time at which the hitbox will be updated by the user.
     ///
@@ -57,47 +52,91 @@ pub struct Hitbox {
     /// Collider will panic if the end time is exceeded without update,
     /// at least in unoptimized builds.  It is ultimately the user's responsibility
     /// to ensure that end times are not exceeded.
-    pub end_time: f64
+    pub end_time: f64,
+}
+
+impl HbVel {
+    /// Creates an `HbVel` with the given `value`.
+    pub fn moving(value: Vec2) -> HbVel {
+        HbVel { value, resize: Vec2::zero(), end_time: f64::INFINITY }
+    }
+
+    /// Creates an `HbVel` with the given `value` and `end_time`.
+    pub fn moving_until(value: Vec2, end_time: f64) -> HbVel {
+        HbVel { value, resize: Vec2::zero(), end_time }
+    }
+
+    /// Creates a stationary `HbVel`.
+    pub fn still() -> HbVel {
+        HbVel { value: Vec2::zero(), resize: Vec2::zero(), end_time: f64::INFINITY }
+    }
+
+    /// Creates a stationary `HbVel` with the given `end_time`.
+    pub fn still_until(end_time: f64) -> HbVel {
+        HbVel { value: Vec2::zero(), resize: Vec2::zero(), end_time }
+    }
+}
+
+impl From<Vec2> for HbVel {
+    fn from(value: Vec2) -> HbVel { HbVel::moving(value) }
+}
+
+impl PlacedBounds for HbVel {
+    fn bounds_center(&self) -> &Vec2 { &self.value }
+    fn bounds_dims(&self) -> &Vec2 { &self.resize }
+}
+
+/// Represents a moving shape for continuous collision testing.
+#[derive(PartialEq, Clone, Debug)]
+pub struct Hitbox {
+    /// The placed shape at the given point in time.
+    ///
+    /// The width and height of the shape must be greater than `padding` at all times.
+    pub value: PlacedShape,
+
+    // Velocity information describing how the hitbox shape is changing over time.
+    pub vel: HbVel,
 }
 
 //TODO invoke hitbox.validate() in more places so that inconsistencies are still found in optimized builds, just found later
 
 impl Hitbox {
-    /// Constructs a new hitbox with the given `shape` and a `vel` of zero and `duration` of infinity.
-    pub fn new(shape: PlacedShape) -> Hitbox {
-        Hitbox {
-            shape: shape,
-            vel: PlacedShape::new(Vec2::zero(), Shape::new(shape.kind(), Vec2::zero())),
-            end_time: f64::INFINITY,
-        }
+    /// Constructs a new hitbox with the given `value` and `vel`.
+    pub fn new(value: PlacedShape, vel: HbVel) -> Hitbox {
+        Hitbox { value, vel }
     }
 
     fn advanced_shape(&self, time: f64) -> PlacedShape {
         assert!(time < HIGH_TIME, "requires time < {}", HIGH_TIME);
-        self.shape.advance(&self.vel, time)
+        self.value.advance(self.vel.value, self.vel.resize, time)
     }
 
     fn validate(&self, min_size: f64, present_time: f64) {
-        assert!(!self.end_time.is_nan() && self.end_time >= present_time, "end time must exceed present time");
-        assert!(self.shape.kind() == self.vel.kind(), "shape and vel have different kinds");
-        assert!(self.shape.dims().x >= min_size && self.shape.dims().y >= min_size, "shape width/height must be at least {}", min_size);
+        assert!(!self.vel.end_time.is_nan() && self.vel.end_time >= present_time, "end time must exceed present time");
+        if self.value.kind() == ShapeKind::Circle {
+            assert!(self.vel.resize.x == self.vel.resize.y, "circle resize velocity must maintain aspect ratio");
+        }
+        assert!(self.value.dims().x >= min_size && self.value.dims().y >= min_size, "shape width/height must be at least {}", min_size);
     }
 
     fn time_until_too_small(&self, min_size: f64) -> f64 {
         let min_size = min_size * 0.9;
-        assert!(self.shape.dims().x > min_size && self.shape.dims().y > min_size);
+        assert!(self.value.dims().x > min_size && self.value.dims().y > min_size);
         let mut time = f64::INFINITY;
-        if self.vel.dims().x < 0.0 { time = time.min((min_size - self.shape.dims().x) / self.vel.dims().x); }
-        if self.vel.dims().y < 0.0 { time = time.min((min_size - self.shape.dims().y) / self.vel.dims().y); }
+        if self.vel.resize.x < 0.0 { time = time.min((min_size - self.value.dims().x) / self.vel.value.x); }
+        if self.vel.resize.y < 0.0 { time = time.min((min_size - self.value.dims().y) / self.vel.value.y); }
         time
     }
 
     fn to_dur_hitbox(&self, time: f64) -> DurHitbox {
-        assert!(time <= self.end_time);
+        assert!(time <= self.vel.end_time);
         DurHitbox {
-            shape: self.shape,
-            vel: self.vel,
-            duration: self.end_time - time
+            value: self.value,
+            vel: DurHbVel {
+                value: self.vel.value,
+                resize: self.vel.resize,
+                duration: self.vel.end_time - time,
+            },
         }
     }
 }
