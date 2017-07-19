@@ -48,21 +48,23 @@
 //!
 //! let mut collider: Collider = Collider::new(4.0, 0.01);
 //!
-//! collider.add_hitbox(0, Shape::square(2.0).place(v2(-10.0, 0.0)).moving(v2(1.0, 0.0)));
-//! collider.add_hitbox(1, Shape::square(2.0).place(v2(10.0, 0.0)).moving(v2(-1.0, 0.0)));
+//! let overlaps = collider.add_hitbox(0, Shape::square(2.0).place(v2(-10.0, 0.0)).moving(v2(1.0, 0.0)));
+//! assert!(overlaps.is_empty());
+//! let overlaps = collider.add_hitbox(1, Shape::square(2.0).place(v2(10.0, 0.0)).moving(v2(-1.0, 0.0)));
+//! assert!(overlaps.is_empty());
 //!
 //! while collider.time() < 20.0 {
 //!     let time = collider.next_time().min(20.0);
 //!     collider.set_time(time);
-//!     if let Some((event, id1, id2)) = collider.next() {
+//!     if let Some((event, id_1, id_2)) = collider.next() {
 //!         println!("{:?} between hitbox {} and hitbox {} at time {}.",
-//!                  event, id1, id2, collider.time());
+//!                  event, id_1, id_2, collider.time());
 //!         if event == Event::Collide {
 //!             println!("Speed of collided hitboxes is halved.");
-//!             for id in [id1, id2].iter().cloned() {
-//!                 let mut hitbox = collider.get_hitbox(id);
-//!                 hitbox.vel.value *= 0.5;
-//!                 collider.update_hitbox(id, hitbox);
+//!             for &id in [id_1, id_2].iter() {
+//!                 let mut hb_vel = collider.get_hitbox(id).vel;
+//!                 hb_vel.value *= 0.5;
+//!                 collider.set_hitbox_vel(id, hb_vel);
 //!             }
 //!         }
 //!     }
@@ -87,7 +89,7 @@ pub use core::*;
 #[cfg(test)]
 mod tests {
     use std::f64;
-    use std::mem;
+    use std::collections::HashSet;
     use super::{Collider, Event};
     use geom::{PlacedShape, Shape, v2};
 
@@ -111,11 +113,13 @@ mod tests {
 
         let mut hitbox = PlacedShape::new(v2(-10.0, 0.0), Shape::square(2.0)).still();
         hitbox.vel.value = v2(1.0, 0.0);
-        collider.add_hitbox(0, hitbox);
+        let overlaps = collider.add_hitbox(0, hitbox);
+        assert!(overlaps.is_empty());
 
         let mut hitbox = PlacedShape::new(v2(10.0, 0.0), Shape::circle(2.0)).still();
         hitbox.vel.value = v2(-1.0, 0.0);
-        collider.add_hitbox(1, hitbox);
+        let overlaps = collider.add_hitbox(1, hitbox);
+        assert!(overlaps.is_empty());
 
         advance_to_event(&mut collider, 9.0);
         assert!(collider.next() == Some((Event::Collide, 0, 1)));
@@ -130,11 +134,13 @@ mod tests {
 
         let mut hitbox = PlacedShape::new(v2(-10.0, 0.0), Shape::square(2.0)).still();
         hitbox.vel.value = v2(1.0, 0.0);
-        collider.add_hitbox(0, hitbox);
+        let overlaps = collider.add_hitbox(0, hitbox);
+        assert!(overlaps.is_empty());
 
         let mut hitbox = PlacedShape::new(v2(10.0, 0.0), Shape::circle(2.0)).still();
         hitbox.vel.value = v2(1.0, 0.0);
-        collider.add_hitbox(1, hitbox);
+        let overlaps = collider.add_hitbox(1, hitbox);
+        assert!(overlaps.is_empty());
 
         advance(&mut collider, 11.0);
 
@@ -145,7 +151,10 @@ mod tests {
         assert!(hitbox.vel.end_time == f64::INFINITY);
         hitbox.value.pos = v2(0.0, 2.0);
         hitbox.vel.value = v2(0.0, -1.0);
-        collider.update_hitbox(0, hitbox);
+        let overlaps = collider.remove_hitbox(0);
+        assert!(overlaps.is_empty());
+        let overlaps = collider.add_hitbox(0, hitbox);
+        assert!(overlaps.is_empty());
 
         advance(&mut collider, 14.0);
 
@@ -156,7 +165,10 @@ mod tests {
         assert!(hitbox.vel.end_time == f64::INFINITY);
         hitbox.value.pos = v2(0.0, -8.0);
         hitbox.vel.value = v2(0.0, 0.0);
-        collider.update_hitbox(1, hitbox);
+        let overlaps = collider.remove_hitbox(1);
+        assert!(overlaps.is_empty());
+        let overlaps = collider.add_hitbox(1, hitbox);
+        assert!(overlaps.is_empty());
 
         advance_to_event(&mut collider, 19.0);
 
@@ -167,7 +179,7 @@ mod tests {
         assert!(hitbox.vel.resize == v2(0.0, 0.0));
         assert!(hitbox.vel.end_time == f64::INFINITY);
         hitbox.vel.value = v2(0.0, 0.0);
-        collider.update_hitbox(0, hitbox);
+        collider.set_hitbox_vel(0, hitbox.vel);
 
         let mut hitbox = collider.get_hitbox(1);
         assert!(hitbox.value == PlacedShape::new(v2(0.0, -8.0), Shape::circle(2.0)));
@@ -175,16 +187,13 @@ mod tests {
         assert!(hitbox.vel.resize == v2(0.0, 0.0));
         assert!(hitbox.vel.end_time == f64::INFINITY);
         hitbox.vel.value = v2(0.0, 2.0);
-        collider.update_hitbox(1, hitbox);
+        collider.set_hitbox_vel(1, hitbox.vel);
 
         let hitbox = PlacedShape::new(v2(0.0, 0.0), Shape::rect(v2(2.0, 20.0))).still();
-        collider.add_hitbox(2, hitbox);
-
-        assert!(collider.next_time() == collider.time());
-        let (mut event_1, mut event_2) = (collider.next(), collider.next());
-        if event_1.unwrap().1 == 1 { mem::swap(&mut event_1, &mut event_2); }
-        assert!(event_1 == Some((Event::Collide, 0, 2)));
-        assert!(event_2 == Some((Event::Collide, 1, 2)));
+        let overlaps: HashSet<_> = collider.add_hitbox(2, hitbox).iter().cloned().collect();
+        assert!(overlaps.contains(&0));
+        assert!(overlaps.contains(&1));
+        assert!(overlaps.len() == 2);
 
         advance_to_event(&mut collider, 21.125);
 
@@ -192,10 +201,11 @@ mod tests {
 
         advance(&mut collider, 26.125);
 
-        collider.remove_hitbox(1);
+        let overlaps = collider.remove_hitbox(1);
+        assert!(overlaps == vec![2]);
 
         advance(&mut collider, 37.125);
     }
 
-    //TODO test custom interactivities and interactivity changes...
+    //TODO test custom interactivities...
 }

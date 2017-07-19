@@ -48,21 +48,23 @@ use collider::geom::{Shape, v2};
 
 let mut collider: Collider = Collider::new(4.0, 0.01);
 
-collider.add_hitbox(0, Shape::square(2.0).place(v2(-10.0, 0.0)).moving(v2(1.0, 0.0)));
-collider.add_hitbox(1, Shape::square(2.0).place(v2(10.0, 0.0)).moving(v2(-1.0, 0.0)));
+let overlaps = collider.add_hitbox(0, Shape::square(2.0).place(v2(-10.0, 0.0)).moving(v2(1.0, 0.0)));
+assert!(overlaps.is_empty());
+let overlaps = collider.add_hitbox(1, Shape::square(2.0).place(v2(10.0, 0.0)).moving(v2(-1.0, 0.0)));
+assert!(overlaps.is_empty());
 
 while collider.time() < 20.0 {
     let time = collider.next_time().min(20.0);
     collider.set_time(time);
-    if let Some((event, id1, id2)) = collider.next() {
+    if let Some((event, id_1, id_2)) = collider.next() {
         println!("{:?} between hitbox {} and hitbox {} at time {}.",
-                 event, id1, id2, collider.time());
+                 event, id_1, id_2, collider.time());
         if event == Event::Collide {
             println!("Speed of collided hitboxes is halved.");
-            for id in [id1, id2].iter().cloned() {
-                let mut hitbox = collider.get_hitbox(id);
-                hitbox.vel.value *= 0.5;
-                collider.update_hitbox(id, hitbox);
+            for &id in [id_1, id_2].iter() {
+                let mut hb_vel = collider.get_hitbox(id).vel;
+                hb_vel.value *= 0.5;
+                collider.set_hitbox_vel(id, hb_vel);
             }
         }
     }

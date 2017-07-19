@@ -16,7 +16,7 @@ use fnv::FnvHashMap;
 use std::mem;
 use core::events::{EventManager, EventKey, EventKeysMap, InternalEvent};
 use core::inter::{Interactivity, DefaultInteractivity, Group};
-use core::{Hitbox, HitboxId, HIGH_TIME};
+use core::{Hitbox, HbVel, HitboxId, HIGH_TIME};
 use core::grid::Grid;
 use core::dur_hitbox::DurHitbox;
 use util::TightSet;
@@ -123,11 +123,8 @@ impl <I: Interactivity> Collider<I> {
                 let mut hitbox_info_1 = self.hitboxes.remove(&id_1).unwrap();
                 {
                     let hitbox_info_2 = self.hitboxes.get_mut(&id_2).unwrap();
-                    assert!(hitbox_info_1.overlaps.insert(id_2), "illegal state");
-                    assert!(hitbox_info_2.overlaps.insert(id_1), "illegal state");
-                    let delay = hitbox_info_1.hitbox_at_time(self.time).separate_time(&hitbox_info_2.hitbox_at_time(self.time), self.padding);
-                    self.events.add_pair_event(self.time + delay, InternalEvent::Separate(id_1, id_2),
-                        &mut hitbox_info_1.event_keys, &mut hitbox_info_2.event_keys);
+                    Collider::process_collision(id_1, &mut hitbox_info_1, id_2, hitbox_info_2,
+                                                &mut self.events, self.time, self.padding);
                 }
                 assert!(self.hitboxes.insert(id_1, hitbox_info_1).is_none(), "illegal state");
                 Some(new_event(Event::Collide, id_1, id_2))
@@ -146,7 +143,7 @@ impl <I: Interactivity> Collider<I> {
                 Some(new_event(Event::Separate, id_1, id_2))
             },
             InternalEvent::Reiterate(id) => {
-                self.internal_update_hitbox(id, None, None, Phase::Update);
+                self.internal_update_hitbox(id, None);
                 None
             },
             #[cfg(debug_assertions)]
@@ -160,21 +157,13 @@ impl <I: Interactivity> Collider<I> {
         }
     }
 
-    /// Adds a new hitbox to the collider.
-    /// The `id` may be used to track the hitbox over time (will panic if there is an id clash).
-    /// `hitbox` is the initial state of the hitbox.
-    /// `interactivity` determines which other hitboxes should be checked for `Collide`/`Separate` events.
-    pub fn add_hitbox_with_interactivity(&mut self, id: HitboxId, hitbox: Hitbox, interactivity: I) {
-        let hitbox_info = HitboxInfo::new(hitbox, interactivity, self.time);
-        assert!(self.hitboxes.insert(id, hitbox_info).is_none(), "hitbox id {} already in use", id);
-        self.internal_update_hitbox(id, None, None, Phase::Add);
-    }
-
-    /// Removes the hitbox with the given `id` from all tracking.
-    /// No further events will be generated for this hitbox.
-    pub fn remove_hitbox(&mut self, id: HitboxId) {
-        self.internal_update_hitbox(id, None, None, Phase::Remove);
-        self.hitboxes.remove(&id);
+    fn process_collision(id_1: HitboxId, hb_1: &mut HitboxInfo<I>, id_2: HitboxId, hb_2: &mut HitboxInfo<I>,
+                         events: &mut EventManager, time: f64, padding: f64) {
+        assert!(hb_1.overlaps.insert(id_2));
+        assert!(hb_2.overlaps.insert(id_1));
+        let delay = hb_1.hitbox_at_time(time).separate_time(&hb_2.hitbox_at_time(time), padding);
+        events.add_pair_event(time + delay, InternalEvent::Separate(id_1, id_2),
+                              &mut hb_1.event_keys, &mut hb_2.event_keys);
     }
 
     /// Returns the current state of the hitbox with the given `id`.
@@ -182,108 +171,106 @@ impl <I: Interactivity> Collider<I> {
         self.hitboxes[&id].pub_hitbox_at_time(self.time)
     }
 
-    /// Updates the hitbox with the given `id` to match the position, shape, and velocity
-    /// provided by `hitbox`.
+    /// Adds a new hitbox to the collider.
     ///
-    /// If this hitbox had collided (and not separated) with another htibox and
-    /// still overlaps after this update, then no new `Collide`/`Separate` events
-    /// are generated immediately.
-    pub fn update_hitbox(&mut self, id: HitboxId, hitbox: Hitbox) {
-        self.internal_update_hitbox(id, Some(hitbox), None, Phase::Update);
-    }
-
-    /// Sets the interactivity of the hitbox with the given `id` to the new value `interactivity`.
+    /// The `id` may be used to track the hitbox over time (will panic if there is an id clash).
+    /// `hitbox` is the initial state of the hitbox.
+    /// `interactivity` determines which other hitboxes should be checked for `Collide`/`Separate` events.
     ///
-    /// If this hitbox was currently overlapping with other hitboxes and the new `interactivity`
-    /// does not care about such overlaps, then the overlaps will ceased to be tracked
-    /// without generating a `Separation` event.
-    pub fn update_interactivity(&mut self, id: HitboxId, interactivity: I) {
-        self.internal_update_hitbox(id, None, Some(interactivity), Phase::Update);
-    }
-
-    /// Invokes the functionality of both `update_hitbox` and `update_interactivity`,
-    /// but is more efficient than calling the two methods separately.
-    pub fn update_hitbox_and_interactivity(&mut self, id: HitboxId, hitbox: Hitbox, interactivity: I) {
-        self.internal_update_hitbox(id, Some(hitbox), Some(interactivity), Phase::Update);
-    }
-
-    fn internal_update_hitbox(&mut self, id: HitboxId, hitbox: Option<Hitbox>, interactivity: Option<I>, phase: Phase) {
-        let mut hitbox_info = self.hitboxes.remove(&id).unwrap_or_else(|| panic!("hitbox id {} not found", id));
-        let mut hitbox = hitbox.unwrap_or_else(|| hitbox_info.pub_hitbox_at_time(self.time));
+    /// Returns a vector of all hitbox IDs that this new hitbox collided with as it was added.
+    /// Note that separate collision events will not be generated for these collisions.
+    pub fn add_hitbox_with_interactivity(&mut self, id: HitboxId, hitbox: Hitbox, interactivity: I) -> Vec<HitboxId> {
         hitbox.validate(self.padding, self.time);
-        self.events.clear_related_events(id, &mut hitbox_info.event_keys, &mut self.hitboxes);
+        let has_group = interactivity.group().is_some();
+        let mut info = HitboxInfo::new(hitbox, interactivity, self.time);
+        self.solitaire_event_check(id, &mut info, has_group);
+        let dur_hitbox = info.hitbox.to_dur_hitbox(self.time);
+        self.update_hitbox_tracking(id, info, None, dur_hitbox)
+    }
 
-        let old_group = hitbox_info.interactivity.group();
-        let (old_group, new_group) = match (phase, interactivity) {
-            (Phase::Add, None) => (None, old_group),
-            (Phase::Remove, None) => {
-                self.clear_overlaps(id, &mut hitbox_info);
-                (old_group, None)
-            },
-            (Phase::Update, None) => (old_group, old_group),
-            (Phase::Update, Some(interactivity)) => {
-                hitbox_info.interactivity = interactivity;
-                let new_group = hitbox_info.interactivity.group();
-                if new_group.is_none() {
-                    self.clear_overlaps(id, &mut hitbox_info);
-                } else {
-                    self.recheck_overlap_interactivity(id, &mut hitbox_info);
-                }
-                (old_group, new_group)
-            },
-            _ => unreachable!()
-        };
+    /// Updates the velocity information of the hitbox with the given `id`.
+    pub fn set_hitbox_vel(&mut self, id: HitboxId, vel: HbVel) {
+        if self.hitboxes[&id].hitbox.vel != vel {
+            self.internal_update_hitbox(id, Some(vel));
+        }
+    }
 
-        mem::swap(&mut hitbox, &mut hitbox_info.hitbox);
-        let old_hitbox = hitbox.to_dur_hitbox(hitbox_info.start_time);
-        if phase != Phase::Remove { self.solitaire_event_check(id, &mut hitbox_info, new_group.is_some()); }
-        let hitbox = hitbox_info.hitbox.to_dur_hitbox(self.time);
+    fn internal_update_hitbox(&mut self, id: HitboxId, vel: Option<HbVel>) {
+        let mut info = self.hitboxes.remove(&id).unwrap_or_else(|| panic!("hitbox id {} not found", id));
+        let old_hitbox = info.hitbox.to_dur_hitbox(info.start_time);
+        info.hitbox = info.pub_hitbox_at_time(self.time);
+        if let Some(vel) = vel {
+            info.hitbox.vel = vel;
+            info.hitbox.validate(self.padding, self.time);
+        }
+        info.start_time = self.time;
+        let has_group = info.interactivity.group().is_some();
+        self.events.clear_related_events(id, &mut info.event_keys, &mut self.hitboxes);
+        self.solitaire_event_check(id, &mut info, has_group);
+        let new_hitbox = info.hitbox.to_dur_hitbox(self.time);
+        let result = self.update_hitbox_tracking(id, info, Some(old_hitbox), new_hitbox);
+        assert!(result.is_empty(), "illegal state");
+    }
 
-        let empty_group_array: &[Group] = &[];
-        let interact_groups: &[Group] = if new_group.is_some() { hitbox_info.interactivity.interact_groups() } else { empty_group_array };
-        let test_ids = self.grid.update_hitbox(
-            id, (&old_hitbox, old_group), (&hitbox, new_group), interact_groups
-        );
-        hitbox_info.start_time = self.time;
+    /// Removes the hitbox with the given `id` from all tracking.
+    ///
+    /// Returns a vector of all hitbox IDs that this hitbox separated from as it was removed.
+    /// No further events will be generated for this hitbox.
+    pub fn remove_hitbox(&mut self, id: HitboxId) -> Vec<HitboxId> {
+        let mut info = self.hitboxes.remove(&id).unwrap_or_else(|| panic!("hitbox id {} not found", id));
+        self.events.clear_related_events(id, &mut info.event_keys, &mut self.hitboxes);
+        if let Some(group) = info.interactivity.group() {
+            let info_start_time = info.start_time;
+            let empty_group_array: &[Group] = &[];
+            self.grid.update_hitbox(
+                id, group, Some(&info.hitbox.to_dur_hitbox(info_start_time)), None, empty_group_array
+            );
+        }
+        self.clear_overlaps(id, &mut info)
+    }
 
-        if let Some(test_ids) = test_ids {
+    fn update_hitbox_tracking(&mut self, id: HitboxId, mut info: HitboxInfo<I>, old_hitbox: Option<DurHitbox>,
+                              new_hitbox: DurHitbox) -> Vec<HitboxId> {
+        let mut result = Vec::new();
+        if let Some(group) = info.interactivity.group() {
+            let test_ids = self.grid.update_hitbox(
+                id, group, old_hitbox.as_ref(), Some(&new_hitbox), info.interactivity.interact_groups()
+            ).unwrap();
             for other_id in test_ids {
-                if !hitbox_info.overlaps.contains(&other_id) {
-                    let other_hitbox_info = self.hitboxes.get_mut(&other_id).unwrap();
-                    if hitbox_info.interactivity.can_interact(&other_hitbox_info.interactivity) {
-                        let delay = hitbox.collide_time(&other_hitbox_info.hitbox_at_time(self.time));
-                        self.events.add_pair_event(self.time + delay, InternalEvent::Collide(id, other_id),
-                            &mut hitbox_info.event_keys, &mut other_hitbox_info.event_keys);
+                if old_hitbox.is_none() || !info.overlaps.contains(&other_id) {
+                    let other_info = self.hitboxes.get_mut(&other_id).unwrap();
+                    if info.interactivity.can_interact(&other_info.interactivity) {
+                        let delay = new_hitbox.collide_time(&other_info.hitbox_at_time(self.time));
+                        if old_hitbox.is_none() && delay == 0.0 {
+                            result.push(other_id);
+                            Collider::process_collision(id, &mut info, other_id, other_info,
+                                                        &mut self.events, self.time, self.padding);
+                        } else {
+                            self.events.add_pair_event(self.time + delay, InternalEvent::Collide(id, other_id),
+                                &mut info.event_keys, &mut other_info.event_keys);
+                        }
                     }
                 }
             }
-        }
-        for &other_id in hitbox_info.overlaps.clone().iter() {
-            let other_hitbox_info = self.hitboxes.get_mut(&other_id).unwrap();
-            let delay = hitbox.separate_time(&other_hitbox_info.hitbox_at_time(self.time), self.padding);
-            self.events.add_pair_event(self.time + delay, InternalEvent::Separate(id, other_id),
-                &mut hitbox_info.event_keys, &mut other_hitbox_info.event_keys);
-        }
-
-        assert!(self.hitboxes.insert(id, hitbox_info).is_none(), "illegal state");
-    }
-
-    fn recheck_overlap_interactivity(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo<I>) {
-        for &other_id in hitbox_info.overlaps.clone().iter() {
-            let other_hitbox_info = self.hitboxes.get_mut(&other_id).unwrap();
-            if !hitbox_info.interactivity.can_interact(&other_hitbox_info.interactivity) {
-                assert!(hitbox_info.overlaps.remove(&other_id), "illegal state");
-                assert!(other_hitbox_info.overlaps.remove(&id), "illegal state");
+            for &other_id in info.overlaps.clone().iter() {
+                let other_info = self.hitboxes.get_mut(&other_id).unwrap();
+                let delay = new_hitbox.separate_time(&other_info.hitbox_at_time(self.time), self.padding);
+                self.events.add_pair_event(self.time + delay, InternalEvent::Separate(id, other_id),
+                    &mut info.event_keys, &mut other_info.event_keys);
             }
         }
+
+        assert!(self.hitboxes.insert(id, info).is_none());
+        result
     }
 
-    fn clear_overlaps(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo<I>) {
-        for &other_id in hitbox_info.overlaps.iter() {
+    fn clear_overlaps(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo<I>) -> Vec<HitboxId> {
+        let overlaps = hitbox_info.overlaps.drain().collect();
+        for &other_id in &overlaps {
             let other_hitbox_info = self.hitboxes.get_mut(&other_id).unwrap();
             assert!(other_hitbox_info.overlaps.remove(&id), "illegal state");
         }
-        hitbox_info.overlaps.clear();
+        overlaps
     }
 
     #[cfg(debug_assertions)]
@@ -311,22 +298,18 @@ impl <I: Interactivity> Collider<I> {
     }
 }
 
+impl <I: Interactivity + Default> Collider<I> {
+    /// Shorthand for `self.add_hitbox_with_interactivity(id, hitbox, I::default())`.
+    pub fn add_hitbox(&mut self, id: HitboxId, hitbox: Hitbox) -> Vec<HitboxId> {
+        self.add_hitbox_with_interactivity(id, hitbox, I::default())
+    }
+}
+
+
 impl <I: Interactivity> EventKeysMap for FnvHashMap<HitboxId, HitboxInfo<I>> {
     fn event_keys_mut(&mut self, id: HitboxId) -> &mut TightSet<EventKey> {
         &mut self.get_mut(&id).unwrap().event_keys
     }
-}
-
-impl <I: Interactivity + Default> Collider<I> {
-    /// Shorthand for `self.add_hitbox_with_interactivity(id, hitbox, I::default());`.
-    pub fn add_hitbox(&mut self, id: HitboxId, hitbox: Hitbox) {
-        self.add_hitbox_with_interactivity(id, hitbox, I::default());
-    }
-}
-
-#[derive(PartialEq, Eq, Copy, Clone)]
-enum Phase {
-    Add, Remove, Update
 }
 
 struct HitboxInfo<I: Interactivity> {

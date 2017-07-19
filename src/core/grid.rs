@@ -69,28 +69,23 @@ impl Grid {
         }
     }
 
-    pub fn update_hitbox(&mut self, hitbox_id: HitboxId, old_hitbox: (&DurHitbox, Option<Group>),
-                         new_hitbox: (&DurHitbox, Option<Group>), groups: &[Group]) -> Option<FnvHashSet<HitboxId>>
+    pub fn update_hitbox(&mut self, hitbox_id: HitboxId, group: Group, old_hitbox: Option<&DurHitbox>,
+                         new_hitbox: Option<&DurHitbox>, groups: &[Group]) -> Option<FnvHashSet<HitboxId>>
     {
-        let (old_hitbox, old_group) = old_hitbox;
-        let (new_hitbox, new_group) = new_hitbox;
-
-        assert!(new_group.is_some() || groups.is_empty(), "illegal state");
-        let old_area = self.index_bounds(old_hitbox, old_group);
-        let new_area = self.index_bounds(new_hitbox, new_group);
+        assert!(new_hitbox.is_some() || groups.is_empty());
+        let old_area = old_hitbox.map(|old_hitbox| self.index_bounds(old_hitbox, group));
+        let new_area = new_hitbox.map(|new_hitbox| self.index_bounds(new_hitbox, group));
         self.update_area(hitbox_id, old_area, new_area);
         new_area.map(|new_area| self.overlapping_ids(hitbox_id, new_area.rect, groups))
     }
 
-    fn index_bounds(&self, hitbox: &DurHitbox, group: Option<Group>) -> Option<GridArea> {
-        group.map(|group| {
-            let bounds = hitbox.bounding_box();
-            let start_x = (bounds.left() / self.cell_width).floor() as i32;
-            let start_y = (bounds.bottom() / self.cell_width).floor() as i32;
-            let end_x = cmp::max((bounds.right() / self.cell_width).ceil() as i32, start_x + 1);
-            let end_y = cmp::max((bounds.top() / self.cell_width).ceil() as i32, start_y + 1);
-            GridArea { rect : IndexRect::new((start_x, start_y), (end_x, end_y)), group : group }
-        })
+    fn index_bounds(&self, hitbox: &DurHitbox, group: Group) -> GridArea {
+        let bounds = hitbox.bounding_box();
+        let start_x = (bounds.left() / self.cell_width).floor() as i32;
+        let start_y = (bounds.bottom() / self.cell_width).floor() as i32;
+        let end_x = cmp::max((bounds.right() / self.cell_width).ceil() as i32, start_x + 1);
+        let end_y = cmp::max((bounds.top() / self.cell_width).ceil() as i32, start_y + 1);
+        GridArea { rect : IndexRect::new((start_x, start_y), (end_x, end_y)), group : group }
     }
 
     fn overlapping_ids(&self, hitbox_id: HitboxId, rect: IndexRect, groups: &[Group]) -> FnvHashSet<HitboxId> {

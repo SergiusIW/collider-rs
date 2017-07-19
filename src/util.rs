@@ -68,6 +68,10 @@ impl <T: Hash + Eq> TightSet<T> {
         self.set.iter()
     }
 
+    pub fn drain(&mut self) -> hash_set::Drain<T> {
+        self.set.drain()
+    }
+
     pub fn is_empty(&self) -> bool {
         self.set.is_empty()
     }
