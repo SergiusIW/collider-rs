@@ -15,8 +15,8 @@
 use fnv::FnvHashMap;
 use std::mem;
 use core::events::{EventManager, EventKey, EventKeysMap, InternalEvent};
-use core::inter::{Interactivity, DefaultInteractivity, Group};
-use core::{Hitbox, HbVel, HitboxId, HIGH_TIME};
+use core::inter::{Interactivity, DefaultInteractivity, HbGroup};
+use core::{Hitbox, HbVel, HbId, HIGH_TIME};
 use core::grid::Grid;
 use core::dur_hitbox::DurHitbox;
 use util::TightSet;
@@ -28,7 +28,7 @@ use util::TightSet;
 /// Collider manages events using a "simulation time" that the user updates
 /// as necessary.  This time starts at `0.0`.
 pub struct Collider<I: Interactivity = DefaultInteractivity> {
-    hitboxes: FnvHashMap<HitboxId, HitboxInfo<I>>,
+    hitboxes: FnvHashMap<HbId, HitboxInfo<I>>,
     time: f64,
     grid: Grid,
     padding: f64,
@@ -108,7 +108,7 @@ impl <I: Interactivity> Collider<I> {
     ///
     /// The returned value is a tuple, denoting the type of event (`Collide` or `Separate`)
     /// and the two `HitboxId`s involved, in increasing order.
-    pub fn next(&mut self) -> Option<(Event, HitboxId, HitboxId)> {
+    pub fn next(&mut self) -> Option<(HbEvent, HbId, HbId)> {
         while let Some(event) = self.events.next(self.time, &mut self.hitboxes) {
             if let Some(event) = self.process_event(event) {
                 return Some(event);
@@ -117,7 +117,7 @@ impl <I: Interactivity> Collider<I> {
         None
     }
 
-    fn process_event(&mut self, event: InternalEvent) -> Option<(Event, HitboxId, HitboxId)> {
+    fn process_event(&mut self, event: InternalEvent) -> Option<(HbEvent, HbId, HbId)> {
         match event {
             InternalEvent::Collide(id_1, id_2) => {
                 let mut hitbox_info_1 = self.hitboxes.remove(&id_1).unwrap();
@@ -127,7 +127,7 @@ impl <I: Interactivity> Collider<I> {
                                                 &mut self.events, self.time, self.padding);
                 }
                 assert!(self.hitboxes.insert(id_1, hitbox_info_1).is_none(), "illegal state");
-                Some(new_event(Event::Collide, id_1, id_2))
+                Some(new_event(HbEvent::Collide, id_1, id_2))
             },
             InternalEvent::Separate(id_1, id_2) => {
                 let mut hitbox_info_1 = self.hitboxes.remove(&id_1).unwrap();
@@ -140,7 +140,7 @@ impl <I: Interactivity> Collider<I> {
                         &mut hitbox_info_1.event_keys, &mut hitbox_info_2.event_keys);
                 }
                 assert!(self.hitboxes.insert(id_1, hitbox_info_1).is_none(), "illegal state");
-                Some(new_event(Event::Separate, id_1, id_2))
+                Some(new_event(HbEvent::Separate, id_1, id_2))
             },
             InternalEvent::Reiterate(id) => {
                 self.internal_update_hitbox(id, None);
@@ -157,7 +157,7 @@ impl <I: Interactivity> Collider<I> {
         }
     }
 
-    fn process_collision(id_1: HitboxId, hb_1: &mut HitboxInfo<I>, id_2: HitboxId, hb_2: &mut HitboxInfo<I>,
+    fn process_collision(id_1: HbId, hb_1: &mut HitboxInfo<I>, id_2: HbId, hb_2: &mut HitboxInfo<I>,
                          events: &mut EventManager, time: f64, padding: f64) {
         assert!(hb_1.overlaps.insert(id_2));
         assert!(hb_2.overlaps.insert(id_1));
@@ -167,7 +167,7 @@ impl <I: Interactivity> Collider<I> {
     }
 
     /// Returns the current state of the hitbox with the given `id`.
-    pub fn get_hitbox(&self, id: HitboxId) -> Hitbox {
+    pub fn get_hitbox(&self, id: HbId) -> Hitbox {
         self.hitboxes[&id].pub_hitbox_at_time(self.time)
     }
 
@@ -179,7 +179,7 @@ impl <I: Interactivity> Collider<I> {
     ///
     /// Returns a vector of all hitbox IDs that this new hitbox collided with as it was added.
     /// Note that separate collision events will not be generated for these collisions.
-    pub fn add_hitbox_with_interactivity(&mut self, id: HitboxId, hitbox: Hitbox, interactivity: I) -> Vec<HitboxId> {
+    pub fn add_hitbox_with_interactivity(&mut self, id: HbId, hitbox: Hitbox, interactivity: I) -> Vec<HbId> {
         hitbox.validate(self.padding, self.time);
         let has_group = interactivity.group().is_some();
         let mut info = HitboxInfo::new(hitbox, interactivity, self.time);
@@ -189,13 +189,13 @@ impl <I: Interactivity> Collider<I> {
     }
 
     /// Updates the velocity information of the hitbox with the given `id`.
-    pub fn set_hitbox_vel(&mut self, id: HitboxId, vel: HbVel) {
+    pub fn set_hitbox_vel(&mut self, id: HbId, vel: HbVel) {
         if self.hitboxes[&id].hitbox.vel != vel {
             self.internal_update_hitbox(id, Some(vel));
         }
     }
 
-    fn internal_update_hitbox(&mut self, id: HitboxId, vel: Option<HbVel>) {
+    fn internal_update_hitbox(&mut self, id: HbId, vel: Option<HbVel>) {
         let mut info = self.hitboxes.remove(&id).unwrap_or_else(|| panic!("hitbox id {} not found", id));
         let old_hitbox = info.hitbox.to_dur_hitbox(info.start_time);
         info.hitbox = info.pub_hitbox_at_time(self.time);
@@ -216,12 +216,12 @@ impl <I: Interactivity> Collider<I> {
     ///
     /// Returns a vector of all hitbox IDs that this hitbox separated from as it was removed.
     /// No further events will be generated for this hitbox.
-    pub fn remove_hitbox(&mut self, id: HitboxId) -> Vec<HitboxId> {
+    pub fn remove_hitbox(&mut self, id: HbId) -> Vec<HbId> {
         let mut info = self.hitboxes.remove(&id).unwrap_or_else(|| panic!("hitbox id {} not found", id));
         self.events.clear_related_events(id, &mut info.event_keys, &mut self.hitboxes);
         if let Some(group) = info.interactivity.group() {
             let info_start_time = info.start_time;
-            let empty_group_array: &[Group] = &[];
+            let empty_group_array: &[HbGroup] = &[];
             self.grid.update_hitbox(
                 id, group, Some(&info.hitbox.to_dur_hitbox(info_start_time)), None, empty_group_array
             );
@@ -229,8 +229,8 @@ impl <I: Interactivity> Collider<I> {
         self.clear_overlaps(id, &mut info)
     }
 
-    fn update_hitbox_tracking(&mut self, id: HitboxId, mut info: HitboxInfo<I>, old_hitbox: Option<DurHitbox>,
-                              new_hitbox: DurHitbox) -> Vec<HitboxId> {
+    fn update_hitbox_tracking(&mut self, id: HbId, mut info: HitboxInfo<I>, old_hitbox: Option<DurHitbox>,
+                              new_hitbox: DurHitbox) -> Vec<HbId> {
         let mut result = Vec::new();
         if let Some(group) = info.interactivity.group() {
             let test_ids = self.grid.update_hitbox(
@@ -264,7 +264,7 @@ impl <I: Interactivity> Collider<I> {
         result
     }
 
-    fn clear_overlaps(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo<I>) -> Vec<HitboxId> {
+    fn clear_overlaps(&mut self, id: HbId, hitbox_info: &mut HitboxInfo<I>) -> Vec<HbId> {
         let overlaps = hitbox_info.overlaps.drain().collect();
         for &other_id in &overlaps {
             let other_hitbox_info = self.hitboxes.get_mut(&other_id).unwrap();
@@ -274,7 +274,7 @@ impl <I: Interactivity> Collider<I> {
     }
 
     #[cfg(debug_assertions)]
-    fn solitaire_event_check(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo<I>, has_group: bool) {
+    fn solitaire_event_check(&mut self, id: HbId, hitbox_info: &mut HitboxInfo<I>, has_group: bool) {
         hitbox_info.pub_end_time = hitbox_info.hitbox.vel.end_time;
         let mut result = (self.time + self.grid.cell_period(&hitbox_info.hitbox, has_group), InternalEvent::Reiterate(id));
         let end_time = hitbox_info.hitbox.vel.end_time;
@@ -286,7 +286,7 @@ impl <I: Interactivity> Collider<I> {
     }
 
     #[cfg(not(debug_assertions))]
-    fn solitaire_event_check(&mut self, id: HitboxId, hitbox_info: &mut HitboxInfo<I>, has_group: bool) {
+    fn solitaire_event_check(&mut self, id: HbId, hitbox_info: &mut HitboxInfo<I>, has_group: bool) {
         hitbox_info.pub_end_time = hitbox_info.hitbox.vel.end_time;
         let mut result = (self.time + self.grid.cell_period(&hitbox_info.hitbox, has_group), true);
         let end_time = hitbox_info.hitbox.vel.end_time;
@@ -300,14 +300,14 @@ impl <I: Interactivity> Collider<I> {
 
 impl <I: Interactivity + Default> Collider<I> {
     /// Shorthand for `self.add_hitbox_with_interactivity(id, hitbox, I::default())`.
-    pub fn add_hitbox(&mut self, id: HitboxId, hitbox: Hitbox) -> Vec<HitboxId> {
+    pub fn add_hitbox(&mut self, id: HbId, hitbox: Hitbox) -> Vec<HbId> {
         self.add_hitbox_with_interactivity(id, hitbox, I::default())
     }
 }
 
 
-impl <I: Interactivity> EventKeysMap for FnvHashMap<HitboxId, HitboxInfo<I>> {
-    fn event_keys_mut(&mut self, id: HitboxId) -> &mut TightSet<EventKey> {
+impl <I: Interactivity> EventKeysMap for FnvHashMap<HbId, HitboxInfo<I>> {
+    fn event_keys_mut(&mut self, id: HbId) -> &mut TightSet<EventKey> {
         &mut self.get_mut(&id).unwrap().event_keys
     }
 }
@@ -318,7 +318,7 @@ struct HitboxInfo<I: Interactivity> {
     start_time: f64,
     pub_end_time: f64,
     event_keys: TightSet<EventKey>,
-    overlaps: TightSet<HitboxId>
+    overlaps: TightSet<HbId>
 }
 
 impl <I: Interactivity> HitboxInfo<I> {
@@ -349,9 +349,9 @@ impl <I: Interactivity> HitboxInfo<I> {
     }
 }
 
-/// An event type that may be returned from a `Collider` instance.
+/// A hitbox event type that may be returned from a `Collider` instance.
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
-pub enum Event {
+pub enum HbEvent {
     /// Occurs when two hitboxes collide
     Collide,
 
@@ -362,7 +362,7 @@ pub enum Event {
     Separate
 }
 
-fn new_event(event: Event, mut id_1: HitboxId, mut id_2: HitboxId) -> (Event, HitboxId, HitboxId) {
+fn new_event(event: HbEvent, mut id_1: HbId, mut id_2: HbId) -> (HbEvent, HbId, HbId) {
     assert!(id_1 != id_2, "ids must be different: {} {}", id_1, id_2);
     if id_1 > id_2 { mem::swap(&mut id_1, &mut id_2); }
     (event, id_1, id_2)

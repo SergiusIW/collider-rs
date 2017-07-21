@@ -43,7 +43,7 @@ smooth appearance over time.
 
 ### Example
 ```rust
-use collider::{Collider, Event};
+use collider::{Collider, HbEvent};
 use collider::geom::{Shape, v2};
 
 let mut collider: Collider = Collider::new(4.0, 0.01);
@@ -59,7 +59,7 @@ while collider.time() < 20.0 {
     if let Some((event, id_1, id_2)) = collider.next() {
         println!("{:?} between hitbox {} and hitbox {} at time {}.",
                  event, id_1, id_2, collider.time());
-        if event == Event::Collide {
+        if event == HbEvent::Collide {
             println!("Speed of collided hitboxes is halved.");
             for &id in [id_1, id_2].iter() {
                 let mut hb_vel = collider.get_hitbox(id).vel;

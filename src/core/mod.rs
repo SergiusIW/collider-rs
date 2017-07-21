@@ -28,7 +28,7 @@ use self::dur_hitbox::{DurHitbox, DurHbVel};
 const HIGH_TIME: f64 = 1e50;
 
 /// Type used as a handle for referencing hitboxes in a `Collider` instance.
-pub type HitboxId = u64;
+pub type HbId = u64;
 
 /// Velocity information describing how a hitbox shape is changing over time.
 #[derive(PartialEq, Clone, Debug)]
@@ -151,9 +151,9 @@ pub mod inter {
     /// (which has many bullets on screen that do not interact with each other),
     /// we may use one group for bullets and one group for everything else,
     /// to avoid the quadratic cost of comparing all nearby bullets with each other.
-    pub type Group = u32;
+    pub type HbGroup = u32;
 
-    static DEFAULT_GROUPS: [Group; 1] = [0];
+    static DEFAULT_GROUPS: [HbGroup; 1] = [0];
 
     /// Used to determine which pairs of hitboxes should be checked for collisions
     /// and which pairs should be ignored.
@@ -163,12 +163,12 @@ pub mod inter {
         ///
         /// If `None` is returned, then no collisions will be reported
         /// for this hitbox at all.
-        fn group(&self) -> Option<Group> { Some(0) }
+        fn group(&self) -> Option<HbGroup> { Some(0) }
 
         /// Returns a list of groups that this hitbox can interact with.
         /// Using large lists of groups may be inefficient.
         /// Default is `[0]`.
-        fn interact_groups(&self) -> &'static [Group] { &DEFAULT_GROUPS }
+        fn interact_groups(&self) -> &'static [HbGroup] { &DEFAULT_GROUPS }
 
         /// Returns true if the pair of hitboxes should be checked for collisions.
         /// This method should be commutative.

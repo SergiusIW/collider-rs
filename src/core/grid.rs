@@ -16,9 +16,9 @@ use std::f64;
 use std::collections::hash_map;
 use fnv::{FnvHashMap, FnvHashSet};
 use std::cmp;
-use core::{HitboxId, Hitbox};
+use core::{HbId, Hitbox};
 use core::dur_hitbox::DurHitbox;
-use core::inter::Group;
+use core::inter::HbGroup;
 use util::TightSet;
 use index_rect::IndexRect;
 use geom::shape::PlacedBounds;
@@ -31,13 +31,13 @@ use geom::shape::PlacedBounds;
 #[derive(PartialEq, Eq, Copy, Clone, Hash)]
 struct GridKey {
     coord: (i32, i32),
-    group: Group
+    group: HbGroup
 }
 
 #[derive(Copy, Clone)]
 struct GridArea {
     rect: IndexRect,
-    group: Group
+    group: HbGroup
 }
 
 impl GridArea {
@@ -47,7 +47,7 @@ impl GridArea {
 }
 
 pub struct Grid {
-    map: FnvHashMap<GridKey, TightSet<HitboxId>>,
+    map: FnvHashMap<GridKey, TightSet<HbId>>,
     cell_width: f64
 }
 
@@ -69,8 +69,8 @@ impl Grid {
         }
     }
 
-    pub fn update_hitbox(&mut self, hitbox_id: HitboxId, group: Group, old_hitbox: Option<&DurHitbox>,
-                         new_hitbox: Option<&DurHitbox>, groups: &[Group]) -> Option<FnvHashSet<HitboxId>>
+    pub fn update_hitbox(&mut self, hitbox_id: HbId, group: HbGroup, old_hitbox: Option<&DurHitbox>,
+                         new_hitbox: Option<&DurHitbox>, groups: &[HbGroup]) -> Option<FnvHashSet<HbId>>
     {
         assert!(new_hitbox.is_some() || groups.is_empty());
         let old_area = old_hitbox.map(|old_hitbox| self.index_bounds(old_hitbox, group));
@@ -79,7 +79,7 @@ impl Grid {
         new_area.map(|new_area| self.overlapping_ids(hitbox_id, new_area.rect, groups))
     }
 
-    fn index_bounds(&self, hitbox: &DurHitbox, group: Group) -> GridArea {
+    fn index_bounds(&self, hitbox: &DurHitbox, group: HbGroup) -> GridArea {
         let bounds = hitbox.bounding_box();
         let start_x = (bounds.left() / self.cell_width).floor() as i32;
         let start_y = (bounds.bottom() / self.cell_width).floor() as i32;
@@ -88,7 +88,7 @@ impl Grid {
         GridArea { rect : IndexRect::new((start_x, start_y), (end_x, end_y)), group : group }
     }
 
-    fn overlapping_ids(&self, hitbox_id: HitboxId, rect: IndexRect, groups: &[Group]) -> FnvHashSet<HitboxId> {
+    fn overlapping_ids(&self, hitbox_id: HbId, rect: IndexRect, groups: &[HbGroup]) -> FnvHashSet<HbId> {
         let mut result = FnvHashSet::default();
         for &group in groups {
             for coord in rect.iter() {
@@ -103,7 +103,7 @@ impl Grid {
         result
     }
 
-    fn update_area(&mut self, hitbox_id: HitboxId, old_area: Option<GridArea>, new_area: Option<GridArea>) {
+    fn update_area(&mut self, hitbox_id: HbId, old_area: Option<GridArea>, new_area: Option<GridArea>) {
         if let Some(old_area) = old_area {
             for coord in old_area.rect.iter() {
                 let key = GridKey { coord : coord, group : old_area.group };

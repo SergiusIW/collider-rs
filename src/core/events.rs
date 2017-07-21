@@ -17,7 +17,7 @@ use std::collections::BTreeMap;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use float::n64;
-use core::{HitboxId, HIGH_TIME};
+use core::{HbId, HIGH_TIME};
 use util::{TightSet, OneOrTwo};
 
 // This module contains Collider events that are queued to occur at given
@@ -68,24 +68,24 @@ impl Ord for EventKey {
 }
 
 pub trait EventKeysMap {
-    fn event_keys_mut(&mut self, id: HitboxId) -> &mut TightSet<EventKey>;
+    fn event_keys_mut(&mut self, id: HbId) -> &mut TightSet<EventKey>;
 }
 
 #[derive(Copy, Clone)]
 pub enum InternalEvent {
-    #[cfg(debug_assertions)] PanicSmallHitbox(HitboxId),
-    #[cfg(debug_assertions)] PanicDurationPassed(HitboxId),
-    Reiterate(HitboxId),
-    Collide(HitboxId, HitboxId),
-    Separate(HitboxId, HitboxId)
+    #[cfg(debug_assertions)] PanicSmallHitbox(HbId),
+    #[cfg(debug_assertions)] PanicDurationPassed(HbId),
+    Reiterate(HbId),
+    Collide(HbId, HbId),
+    Separate(HbId, HbId)
 }
 
 impl InternalEvent {
-    fn other_id(self, id: HitboxId) -> Option<HitboxId> {
+    fn other_id(self, id: HbId) -> Option<HbId> {
         self.involved_hitbox_ids().other_id(id)
     }
 
-    fn involved_hitbox_ids(self) -> OneOrTwo<HitboxId> {
+    fn involved_hitbox_ids(self) -> OneOrTwo<HbId> {
         match self {
             #[cfg(debug_assertions)] InternalEvent::PanicSmallHitbox(id) | InternalEvent::PanicDurationPassed(id) => OneOrTwo::One(id),
             InternalEvent::Reiterate(id) => OneOrTwo::One(id),
@@ -121,7 +121,7 @@ impl EventManager {
         }
     }
 
-    pub fn clear_related_events<M: EventKeysMap>(&mut self, id: HitboxId, key_set: &mut TightSet<EventKey>, map: &mut M) {
+    pub fn clear_related_events<M: EventKeysMap>(&mut self, id: HbId, key_set: &mut TightSet<EventKey>, map: &mut M) {
         for key in key_set.iter() {
             let event = self.events.remove(key).unwrap();
             if let Some(other_id) = event.other_id(id) {

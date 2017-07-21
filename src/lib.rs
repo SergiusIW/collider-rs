@@ -43,7 +43,7 @@
 //!
 //! #Example
 //! ```
-//! use collider::{Collider, Event};
+//! use collider::{Collider, HbEvent};
 //! use collider::geom::{Shape, v2};
 //!
 //! let mut collider: Collider = Collider::new(4.0, 0.01);
@@ -59,7 +59,7 @@
 //!     if let Some((event, id_1, id_2)) = collider.next() {
 //!         println!("{:?} between hitbox {} and hitbox {} at time {}.",
 //!                  event, id_1, id_2, collider.time());
-//!         if event == Event::Collide {
+//!         if event == HbEvent::Collide {
 //!             println!("Speed of collided hitboxes is halved.");
 //!             for &id in [id_1, id_2].iter() {
 //!                 let mut hb_vel = collider.get_hitbox(id).vel;
@@ -90,7 +90,7 @@ pub use core::*;
 mod tests {
     use std::f64;
     use std::collections::HashSet;
-    use super::{Collider, Event};
+    use super::{Collider, HbEvent};
     use geom::{PlacedShape, Shape, v2};
 
     fn advance_to_event(collider: &mut Collider, time: f64) {
@@ -122,9 +122,9 @@ mod tests {
         assert!(overlaps.is_empty());
 
         advance_to_event(&mut collider, 9.0);
-        assert!(collider.next() == Some((Event::Collide, 0, 1)));
+        assert!(collider.next() == Some((HbEvent::Collide, 0, 1)));
         advance_to_event(&mut collider, 11.125);
-        assert!(collider.next() == Some((Event::Separate, 0, 1)));
+        assert!(collider.next() == Some((HbEvent::Separate, 0, 1)));
         advance(&mut collider, 23.0);
     }
 
@@ -172,7 +172,7 @@ mod tests {
 
         advance_to_event(&mut collider, 19.0);
 
-        assert!(collider.next() == Some((Event::Collide, 0, 1)));
+        assert!(collider.next() == Some((HbEvent::Collide, 0, 1)));
         let mut hitbox = collider.get_hitbox(0);
         assert!(hitbox.value == PlacedShape::new(v2(0.0, -6.0), Shape::square(2.0)));
         assert!(hitbox.vel.value == v2(0.0, -1.0));
@@ -197,7 +197,7 @@ mod tests {
 
         advance_to_event(&mut collider, 21.125);
 
-        assert!(collider.next() == Some((Event::Separate, 0, 1)));
+        assert!(collider.next() == Some((HbEvent::Separate, 0, 1)));
 
         advance(&mut collider, 26.125);
 
