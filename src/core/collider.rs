@@ -213,6 +213,21 @@ impl <P: HbProfile> Collider<P> {
         self.clear_overlaps(id, &mut info)
     }
 
+    /// Returns the profiles of all currently tracked overlaps on the hitbox with the given `id`.
+    pub fn get_overlaps(&self, id: HbId) -> Vec<P> {
+        let info = self.hitboxes.get(&id).unwrap_or_else(|| panic!("hitbox id {} not found", id));
+        info.overlaps.iter()
+                     .map(|other_id| self.hitboxes[other_id].profile)
+                     .collect()
+    }
+
+    /// Returns true if there is a currently tracked overlap between the hitboxes with `id_1` and `id_2`.
+    pub fn is_overlapping(&self, id_1: HbId, id_2: HbId) -> bool {
+        self.hitboxes.get(&id_1)
+                     .map(|info| info.overlaps.contains(&id_2))
+                     .unwrap_or(false)
+    }
+
     fn update_hitbox_tracking(&mut self, id: HbId, mut info: HitboxInfo<P>, old_hitbox: Option<DurHitbox>,
                               new_hitbox: DurHitbox) -> Vec<P> {
         let mut result = Vec::new();
