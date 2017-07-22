@@ -94,7 +94,7 @@ pub struct Hitbox {
     /// The width and height of the shape must be greater than `padding` at all times.
     pub value: PlacedShape,
 
-    // Velocity information describing how the hitbox shape is changing over time.
+    /// Velocity information describing how the hitbox shape is changing over time.
     pub vel: HbVel,
 }
 
@@ -174,11 +174,13 @@ pub trait HbProfile: Copy {
     fn group(&self) -> Option<HbGroup> { Some(0) }
 
     /// Returns a list of groups that this hitbox can interact with.
-    /// Using large lists of groups may be inefficient.
     /// Default is `[0]`.
+    ///
+    /// Using large lists of groups may be inefficient.
     fn interact_groups(&self) -> &'static [HbGroup] { &DEFAULT_GROUPS }
 
     /// Returns true if the pair of hitboxes should be checked for collisions.
+    ///
     /// This method should be commutative.
     /// This method should be consistent with `group` and `interact_groups`,
     /// although possibly more restrictive.
