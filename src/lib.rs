@@ -69,15 +69,15 @@
 //! while collider.time() < 20.0 {
 //!     let time = collider.next_time().min(20.0);
 //!     collider.set_time(time);
-//!     if let Some((event, pr_1, pr_2)) = collider.next() {
+//!     if let Some((event, profile_1, profile_2)) = collider.next() {
 //!         println!("{:?} between {:?} and {:?} at time {}.",
-//!                  event, pr_1, pr_2, collider.time());
+//!                  event, profile_1, profile_2, collider.time());
 //!         if event == HbEvent::Collide {
 //!             println!("Speed of collided hitboxes is halved.");
-//!             for pr in [pr_1, pr_2].iter() {
-//!                 let mut hb_vel = collider.get_hitbox(pr.id()).vel;
+//!             for profile in [profile_1, profile_2].iter() {
+//!                 let mut hb_vel = collider.get_hitbox(profile.id()).vel;
 //!                 hb_vel.value *= 0.5;
-//!                 collider.set_hitbox_vel(pr.id(), hb_vel);
+//!                 collider.set_hitbox_vel(profile.id(), hb_vel);
 //!             }
 //!         }
 //!     }
