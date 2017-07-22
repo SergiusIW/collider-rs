@@ -21,7 +21,7 @@ positions of all shapes and checking for collisions at a frozen snapshot in time
 on the other hand, means that the time of collision is determined very precisely,
 and the user is not restricted to a fixed time-stepping method.
 There are currently two kinds of shapes supported by Collider: circles and rectangles.
-The user specifies the positions and velocites of these shapes, which
+The user specifies the positions and velocities of these shapes, which
 they can update at any time, and Collider will solve for the precise times of
 collision and separation.
 
@@ -35,7 +35,7 @@ the precise time and location at which the sprite touches the wall is known.
 Traditional collision detection may have an issue with "tunneling," in which a
 fast small object runs into a narrow wall and collision detection misses it,
 or two fast small objects fly right through each other and collision detection misses it.
-This is also not a problem for contiuous collision detection.
+This is also not a problem for continuous collision detection.
 It is also debatable that continuous collision detection may be
 more efficient in certain circumstances,
 since the hitboxes may be updated less frequently and still maintain a
@@ -43,37 +43,50 @@ smooth appearance over time.
 
 ### Example
 ```rust
-use collider::{Collider, HbEvent};
+use collider::{Collider, HbEvent, HbId, HbProfile};
 use collider::geom::{Shape, v2};
 
-let mut collider: Collider = Collider::new(4.0, 0.01);
+#[derive(Copy, Clone, Debug)]
+struct DemoHbProfile { id: HbId } // add any additional identfying data to this struct
 
-let overlaps = collider.add_hitbox(0, Shape::square(2.0).place(v2(-10.0, 0.0)).moving(v2(1.0, 0.0)));
+impl HbProfile for DemoHbProfile {
+    fn id(&self) -> HbId { self.id }
+    fn can_interact(&self, _other: &DemoHbProfile) -> bool { true }
+    fn cell_width() -> f64 { 4.0 }
+    fn padding() -> f64 { 0.01 }
+}
+
+let mut collider: Collider<DemoHbProfile> = Collider::new();
+
+let hitbox = Shape::square(2.0).place(v2(-10.0, 0.0)).moving(v2(1.0, 0.0));
+let overlaps = collider.add_hitbox(DemoHbProfile { id: 0 }, hitbox);
 assert!(overlaps.is_empty());
-let overlaps = collider.add_hitbox(1, Shape::square(2.0).place(v2(10.0, 0.0)).moving(v2(-1.0, 0.0)));
+
+let hitbox = Shape::square(2.0).place(v2(10.0, 0.0)).moving(v2(-1.0, 0.0));
+let overlaps = collider.add_hitbox(DemoHbProfile { id: 1 }, hitbox);
 assert!(overlaps.is_empty());
 
 while collider.time() < 20.0 {
     let time = collider.next_time().min(20.0);
     collider.set_time(time);
-    if let Some((event, id_1, id_2)) = collider.next() {
-        println!("{:?} between hitbox {} and hitbox {} at time {}.",
-                 event, id_1, id_2, collider.time());
+    if let Some((event, pr_1, pr_2)) = collider.next() {
+        println!("{:?} between {:?} and {:?} at time {}.",
+                 event, pr_1, pr_2, collider.time());
         if event == HbEvent::Collide {
             println!("Speed of collided hitboxes is halved.");
-            for &id in [id_1, id_2].iter() {
-                let mut hb_vel = collider.get_hitbox(id).vel;
+            for pr in [pr_1, pr_2].iter() {
+                let mut hb_vel = collider.get_hitbox(pr.id()).vel;
                 hb_vel.value *= 0.5;
-                collider.set_hitbox_vel(id, hb_vel);
+                collider.set_hitbox_vel(pr.id(), hb_vel);
             }
         }
     }
 }
 
 // the above loop prints the following events:
-//   Collide between hitbox 0 and hitbox 1 at time 9.
+//   Collide between DemoHbProfile { id: 0 } and DemoHbProfile { id: 1 } at time 9.
 //   Speed of collided hitboxes is halved.
-//   Separate between hitbox 0 and hitbox 1 at time 13.01.
+//   Separate between DemoHbProfile { id: 0 } and DemoHbProfile { id: 1 } at time 13.01.
 ```
 
 ### Homepage
@@ -97,7 +110,3 @@ There are a few new features that may be added in the more distant future, or if
   that point away from the wall are generated).
 * Adding right-triangles to the set of possible shapes.
   (Note: I do not intend to add general polygons)
-
-The only breaking change I foresee in the future is possibly changing how `HitboxId`s work;
-they are currently an integer used as a handle, but that may change.
-`Interactivity` may also change with this.

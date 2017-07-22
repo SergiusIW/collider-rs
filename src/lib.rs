@@ -43,37 +43,50 @@
 //!
 //! #Example
 //! ```
-//! use collider::{Collider, HbEvent};
+//! use collider::{Collider, HbEvent, HbId, HbProfile};
 //! use collider::geom::{Shape, v2};
 //!
-//! let mut collider: Collider = Collider::new(4.0, 0.01);
+//! #[derive(Copy, Clone, Debug)]
+//! struct DemoHbProfile { id: HbId } // add any additional identfying data to this struct
 //!
-//! let overlaps = collider.add_hitbox(0, Shape::square(2.0).place(v2(-10.0, 0.0)).moving(v2(1.0, 0.0)));
+//! impl HbProfile for DemoHbProfile {
+//!     fn id(&self) -> HbId { self.id }
+//!     fn can_interact(&self, _other: &DemoHbProfile) -> bool { true }
+//!     fn cell_width() -> f64 { 4.0 }
+//!     fn padding() -> f64 { 0.01 }
+//! }
+//!
+//! let mut collider: Collider<DemoHbProfile> = Collider::new();
+//!
+//! let hitbox = Shape::square(2.0).place(v2(-10.0, 0.0)).moving(v2(1.0, 0.0));
+//! let overlaps = collider.add_hitbox(DemoHbProfile { id: 0 }, hitbox);
 //! assert!(overlaps.is_empty());
-//! let overlaps = collider.add_hitbox(1, Shape::square(2.0).place(v2(10.0, 0.0)).moving(v2(-1.0, 0.0)));
+//!
+//! let hitbox = Shape::square(2.0).place(v2(10.0, 0.0)).moving(v2(-1.0, 0.0));
+//! let overlaps = collider.add_hitbox(DemoHbProfile { id: 1 }, hitbox);
 //! assert!(overlaps.is_empty());
 //!
 //! while collider.time() < 20.0 {
 //!     let time = collider.next_time().min(20.0);
 //!     collider.set_time(time);
-//!     if let Some((event, id_1, id_2)) = collider.next() {
-//!         println!("{:?} between hitbox {} and hitbox {} at time {}.",
-//!                  event, id_1, id_2, collider.time());
+//!     if let Some((event, pr_1, pr_2)) = collider.next() {
+//!         println!("{:?} between {:?} and {:?} at time {}.",
+//!                  event, pr_1, pr_2, collider.time());
 //!         if event == HbEvent::Collide {
 //!             println!("Speed of collided hitboxes is halved.");
-//!             for &id in [id_1, id_2].iter() {
-//!                 let mut hb_vel = collider.get_hitbox(id).vel;
+//!             for pr in [pr_1, pr_2].iter() {
+//!                 let mut hb_vel = collider.get_hitbox(pr.id()).vel;
 //!                 hb_vel.value *= 0.5;
-//!                 collider.set_hitbox_vel(id, hb_vel);
+//!                 collider.set_hitbox_vel(pr.id(), hb_vel);
 //!             }
 //!         }
 //!     }
 //! }
 //!
 //! // the above loop prints the following events:
-//! //   Collide between hitbox 0 and hitbox 1 at time 9.
+//! //   Collide between DemoHbProfile { id: 0 } and DemoHbProfile { id: 1 } at time 9.
 //! //   Speed of collided hitboxes is halved.
-//! //   Separate between hitbox 0 and hitbox 1 at time 13.01.
+//! //   Separate between DemoHbProfile { id: 0 } and DemoHbProfile { id: 1 } at time 13.01.
 //! ```
 
 extern crate fnv;
@@ -90,17 +103,33 @@ pub use core::*;
 mod tests {
     use std::f64;
     use std::collections::HashSet;
-    use super::{Collider, HbEvent};
+    use super::{Collider, HbEvent, HbId, HbProfile};
     use geom::{PlacedShape, Shape, v2};
 
-    fn advance_to_event(collider: &mut Collider, time: f64) {
+    #[derive(Copy, Clone, PartialEq, Eq)]
+    struct TestHbProfile { id: HbId }
+
+    impl From<HbId> for TestHbProfile {
+        fn from(id: HbId) -> TestHbProfile {
+            TestHbProfile { id }
+        }
+    }
+
+    impl HbProfile for TestHbProfile {
+        fn id(&self) -> HbId { self.id }
+        fn can_interact(&self, _other: &TestHbProfile) -> bool { true }
+        fn cell_width() -> f64 { 4.0 }
+        fn padding() -> f64 { 0.25 }
+    }
+
+    fn advance_to_event(collider: &mut Collider<TestHbProfile>, time: f64) {
         advance(collider, time);
         assert!(collider.next_time() == collider.time());
     }
 
-    fn advance(collider: &mut Collider, time: f64) {
+    fn advance(collider: &mut Collider<TestHbProfile>, time: f64) {
         while collider.time() < time {
-            assert!(collider.next() == None);
+            assert!(collider.next().is_none());
             let new_time = collider.next_time().min(time);
             collider.set_time(new_time);
         }
@@ -109,37 +138,37 @@ mod tests {
 
     #[test]
     fn smoke_test() {
-        let mut collider = Collider::new(4.0, 0.25);
+        let mut collider = Collider::<TestHbProfile>::new();
 
         let mut hitbox = PlacedShape::new(v2(-10.0, 0.0), Shape::square(2.0)).still();
         hitbox.vel.value = v2(1.0, 0.0);
-        let overlaps = collider.add_hitbox(0, hitbox);
+        let overlaps = collider.add_hitbox(0.into(), hitbox);
         assert!(overlaps.is_empty());
 
         let mut hitbox = PlacedShape::new(v2(10.0, 0.0), Shape::circle(2.0)).still();
         hitbox.vel.value = v2(-1.0, 0.0);
-        let overlaps = collider.add_hitbox(1, hitbox);
+        let overlaps = collider.add_hitbox(1.into(), hitbox);
         assert!(overlaps.is_empty());
 
         advance_to_event(&mut collider, 9.0);
-        assert!(collider.next() == Some((HbEvent::Collide, 0, 1)));
+        assert!(collider.next() == Some((HbEvent::Collide, 0.into(), 1.into())));
         advance_to_event(&mut collider, 11.125);
-        assert!(collider.next() == Some((HbEvent::Separate, 0, 1)));
+        assert!(collider.next() == Some((HbEvent::Separate, 0.into(), 1.into())));
         advance(&mut collider, 23.0);
     }
 
     #[test]
     fn test_hitbox_updates() {
-        let mut collider = Collider::new(4.0, 0.25);
+        let mut collider = Collider::<TestHbProfile>::new();
 
         let mut hitbox = PlacedShape::new(v2(-10.0, 0.0), Shape::square(2.0)).still();
         hitbox.vel.value = v2(1.0, 0.0);
-        let overlaps = collider.add_hitbox(0, hitbox);
+        let overlaps = collider.add_hitbox(0.into(), hitbox);
         assert!(overlaps.is_empty());
 
         let mut hitbox = PlacedShape::new(v2(10.0, 0.0), Shape::circle(2.0)).still();
         hitbox.vel.value = v2(1.0, 0.0);
-        let overlaps = collider.add_hitbox(1, hitbox);
+        let overlaps = collider.add_hitbox(1.into(), hitbox);
         assert!(overlaps.is_empty());
 
         advance(&mut collider, 11.0);
@@ -153,7 +182,7 @@ mod tests {
         hitbox.vel.value = v2(0.0, -1.0);
         let overlaps = collider.remove_hitbox(0);
         assert!(overlaps.is_empty());
-        let overlaps = collider.add_hitbox(0, hitbox);
+        let overlaps = collider.add_hitbox(0.into(), hitbox);
         assert!(overlaps.is_empty());
 
         advance(&mut collider, 14.0);
@@ -167,12 +196,12 @@ mod tests {
         hitbox.vel.value = v2(0.0, 0.0);
         let overlaps = collider.remove_hitbox(1);
         assert!(overlaps.is_empty());
-        let overlaps = collider.add_hitbox(1, hitbox);
+        let overlaps = collider.add_hitbox(1.into(), hitbox);
         assert!(overlaps.is_empty());
 
         advance_to_event(&mut collider, 19.0);
 
-        assert!(collider.next() == Some((HbEvent::Collide, 0, 1)));
+        assert!(collider.next() == Some((HbEvent::Collide, 0.into(), 1.into())));
         let mut hitbox = collider.get_hitbox(0);
         assert!(hitbox.value == PlacedShape::new(v2(0.0, -6.0), Shape::square(2.0)));
         assert!(hitbox.vel.value == v2(0.0, -1.0));
@@ -190,19 +219,20 @@ mod tests {
         collider.set_hitbox_vel(1, hitbox.vel);
 
         let hitbox = PlacedShape::new(v2(0.0, 0.0), Shape::rect(v2(2.0, 20.0))).still();
-        let overlaps: HashSet<_> = collider.add_hitbox(2, hitbox).iter().cloned().collect();
-        assert!(overlaps.contains(&0));
-        assert!(overlaps.contains(&1));
-        assert!(overlaps.len() == 2);
+        let overlaps = collider.add_hitbox(2.into(), hitbox);
+        let overlaps_set: HashSet<_> = overlaps.iter().map(|pr| pr.id()).collect();
+        assert!(overlaps_set.contains(&0));
+        assert!(overlaps_set.contains(&1));
+        assert!(overlaps_set.len() == 2);
 
         advance_to_event(&mut collider, 21.125);
 
-        assert!(collider.next() == Some((HbEvent::Separate, 0, 1)));
+        assert!(collider.next() == Some((HbEvent::Separate, 0.into(), 1.into())));
 
         advance(&mut collider, 26.125);
 
         let overlaps = collider.remove_hitbox(1);
-        assert!(overlaps == vec![2]);
+        assert!(overlaps == vec![2.into()]);
 
         advance(&mut collider, 37.125);
     }

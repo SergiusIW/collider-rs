@@ -141,48 +141,73 @@ impl Hitbox {
     }
 }
 
-/// Contains types that describe interactions between hitboxes.
-pub mod inter {
-    /// A group id that may be used as a first measure to efficiently filter out hitboxes that don't interact.
+/// A group id that may be used as a first measure to efficiently filter out hitboxes that don't interact.
+///
+/// The total number of groups used should in general be very small.
+/// Often 1 is enough, and 10 is excessive.
+/// As an example, in a [danmaku](https://en.wikipedia.org/wiki/Shoot_%27em_up#Bullet_hell_and_niche_appeal) game
+/// (which has many bullets on screen that do not interact with each other),
+/// we may use one group for bullets and one group for everything else,
+/// to avoid the quadratic cost of comparing all nearby bullets with each other.
+pub type HbGroup = u32;
+
+static DEFAULT_GROUPS: [HbGroup; 1] = [0];
+
+/// A trait that holds metadata for describing a hitbox.
+///
+/// A user of `Collider` will need to implement an HbProfile that best suites their needs in a game.
+/// The most basic HbProfile will just contain an integer ID for the hitbox,
+/// but a user may define additional metadata for identfying the hitbox and describing interactivity.
+/// An HbProfile must implement the `Copy` trait and should not take up much memory.
+pub trait HbProfile: Copy {
+    /// A unique identifier for the hitbox.
     ///
-    /// The total number of groups used should in general be very small.
-    /// Often 1 is enough, and 4 is excessive.
-    /// As an example, in a [danmaku](https://en.wikipedia.org/wiki/Shoot_%27em_up#Bullet_hell_and_niche_appeal) game
-    /// (which has many bullets on screen that do not interact with each other),
-    /// we may use one group for bullets and one group for everything else,
-    /// to avoid the quadratic cost of comparing all nearby bullets with each other.
-    pub type HbGroup = u32;
+    /// Trying to have multiple hitboxes with the same `id` to a `Collider` instance simultaneously
+    /// will result in a panic.
+    fn id(&self) -> HbId;
 
-    static DEFAULT_GROUPS: [HbGroup; 1] = [0];
+    /// Returns the group id associated with the hitbox.
+    /// Default is `Some(0)`.
+    ///
+    /// If `None` is returned, then no collisions will be reported
+    /// for this hitbox at all.
+    fn group(&self) -> Option<HbGroup> { Some(0) }
 
-    /// Used to determine which pairs of hitboxes should be checked for collisions
-    /// and which pairs should be ignored.
-    pub trait Interactivity {
-        /// Returns the group id associated with the hitbox.
-        /// Default is `Some(0)`.
-        ///
-        /// If `None` is returned, then no collisions will be reported
-        /// for this hitbox at all.
-        fn group(&self) -> Option<HbGroup> { Some(0) }
+    /// Returns a list of groups that this hitbox can interact with.
+    /// Using large lists of groups may be inefficient.
+    /// Default is `[0]`.
+    fn interact_groups(&self) -> &'static [HbGroup] { &DEFAULT_GROUPS }
 
-        /// Returns a list of groups that this hitbox can interact with.
-        /// Using large lists of groups may be inefficient.
-        /// Default is `[0]`.
-        fn interact_groups(&self) -> &'static [HbGroup] { &DEFAULT_GROUPS }
+    /// Returns true if the pair of hitboxes should be checked for collisions.
+    /// This method should be commutative.
+    /// This method should be consistent with `group` and `interact_groups`,
+    /// although possibly more restrictive.
+    fn can_interact(&self, other: &Self) -> bool;
 
-        /// Returns true if the pair of hitboxes should be checked for collisions.
-        /// This method should be commutative.
-        /// This method should be consistent with `group` and `interact_groups`,
-        /// although possibly more restrictive.
-        fn can_interact(&self, other: &Self) -> bool;
-    }
+    /// The width of the cells used in the Collider grid.
+    ///
+    /// To reduce the number of overlaps that are tested,
+    /// hitboxes are placed in a sparse grid structure behind the scenes.
+    /// `cell_width` is the width of the cells used in that grid.
+    /// If your game has a similar grid concept, then it is usually a good choice
+    /// to use the same cell width as that grid.
+    /// Otherwise, a good choice is to use a width that is slightly larger
+    /// than most of the hitboxes.
+    fn cell_width() -> f64;
 
-    /// The default implementation of `Interactivity`, in which
-    /// every hitbox is allowed to interact with every other hitbox.
-    #[derive(Default)]
-    pub struct DefaultInteractivity;
-
-    impl Interactivity for DefaultInteractivity {
-        fn can_interact(&self, _other: &Self) -> bool { true }
-    }
+    /// The minimum distance before two hitboxes are considered separated.
+    ///
+    /// Collider generates both `Collide` and `Separate` events.
+    /// However, due to numerical error, it is important that two hitboxes
+    /// be a certain small distance apart from each other after a collision
+    /// before they are considered separated.
+    /// Otherwise, false separation events may occur if, for example,
+    /// a sprite runs into a wall and stops, still touching the wall.
+    /// `padding` is used to describe what this minimum separation distance is.
+    /// This should typically be something that is not visible to the
+    /// user, perhaps a fraction of a "pixel."
+    ///
+    /// Another restriction introduced by `padding` is that hitboxes are not
+    /// allowed to have a width or height smaller than `padding`.
+    fn padding() -> f64;
 }
