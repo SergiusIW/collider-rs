@@ -80,10 +80,10 @@ impl Grid {
 
     fn index_bounds(&self, hitbox: &DurHitbox, group: HbGroup) -> GridArea {
         let bounds = hitbox.bounding_box();
-        let start_x = (bounds.left() / self.cell_width).floor() as i32;
-        let start_y = (bounds.bottom() / self.cell_width).floor() as i32;
-        let end_x = cmp::max((bounds.right() / self.cell_width).ceil() as i32, start_x + 1);
-        let end_y = cmp::max((bounds.top() / self.cell_width).ceil() as i32, start_y + 1);
+        let start_x = (bounds.min_x() / self.cell_width).floor() as i32;
+        let start_y = (bounds.min_y() / self.cell_width).floor() as i32;
+        let end_x = cmp::max((bounds.max_x() / self.cell_width).ceil() as i32, start_x + 1);
+        let end_y = cmp::max((bounds.max_y() / self.cell_width).ceil() as i32, start_y + 1);
         GridArea { rect : IndexRect::new((start_x, start_y), (end_x, end_y)), group : group }
     }
 

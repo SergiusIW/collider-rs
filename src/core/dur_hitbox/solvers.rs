@@ -54,7 +54,7 @@ fn time_unpadded(a: &DurHitbox, b: &DurHitbox, for_collide: bool, duration: f64)
 fn rect_rect_time(a: &DurHitbox, b: &DurHitbox, for_collide: bool) -> f64 {
     let mut overlap_start = 0.0f64;
     let mut overlap_end = f64::INFINITY;
-    for &card in Card::vals() {
+    for &card in &Card::values() {
         let overlap = a.value.card_overlap(&b.value, card);
         let overlap_vel = a.vel.card_overlap(&b.vel, card);
         if overlap < 0.0 {

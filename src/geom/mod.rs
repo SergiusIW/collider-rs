@@ -16,42 +16,8 @@
 
 pub(crate) mod shape;
 mod vec;
+mod card;
 
 pub use self::shape::{ShapeKind, Shape, PlacedShape};
 pub use self::vec::*;
-
-#[derive(PartialEq, Eq, Copy, Clone)]
-pub(crate) enum Card {
-    Bottom,
-    Left,
-    Top,
-    Right
-}
-
-impl Card {
-    pub fn flip(self) -> Card {
-        match self {
-            Card::Bottom => Card::Top,
-            Card::Top => Card::Bottom,
-            Card::Left => Card::Right,
-            Card::Right => Card::Left
-        }
-    }
-
-    pub fn vals() -> &'static [Card; 4] {
-        &CARD_VALS
-    }
-}
-
-static CARD_VALS: [Card; 4] = [Card::Bottom, Card::Left, Card::Top, Card::Right];
-
-impl Into<Vec2> for Card {
-    fn into(self) -> Vec2 {
-        match self {
-            Card::Bottom => v2(0.0, -1.0),
-            Card::Left => v2(-1.0, 0.0),
-            Card::Top => v2(0.0, 1.0),
-            Card::Right => v2(1.0, 0.0)
-        }
-    }
-}
+pub use self::card::*;

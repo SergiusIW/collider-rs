@@ -13,15 +13,15 @@
 // limitations under the License.
 
 use geom::*;
-use geom::shape::PlacedBounds;
+use geom::shape::{PlacedBounds, Sector};
 use float::n64;
 
-// This module contains methods to solve for the normal between two
-// PlacedShapes.
+// This module contains methods to solve for the normal vector
+// between two PlacedShapes.
 
 pub fn rect_rect_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {
-    let (card, overlap) = Card::vals().iter()
-        .map(|&card| (card, dst.card_overlap(src, card)))
+    let (card, overlap) = Card::values().iter().cloned()
+        .map(|card| (card, dst.card_overlap(src, card)))
         .min_by_key(|&(_, overlap)| n64(overlap))
         .unwrap();
     DirVec2::new(card.into(), overlap)
@@ -40,5 +40,36 @@ pub fn rect_circle_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {
         circle_circle_normal(&PlacedShape::new(dst.corner(sector), Shape::circle(0.0)), src)
     } else {
         rect_rect_normal(dst, src)
+    }
+}
+
+pub fn masked_rect_rect_normal(dst: &PlacedShape, src: &PlacedShape, mask: CardMask) -> DirVec2 {
+    let (card, overlap) = Card::values().iter().cloned()
+        .filter(|&card| mask[card])
+        .map(|card| (card, dst.card_overlap(src, card)))
+        .min_by_key(|&(_, overlap)| n64(overlap))
+        .unwrap_or_else(|| panic!("CardMask must be non-empty"));
+    DirVec2::new(card.into(), overlap)
+}
+
+pub fn masked_circle_circle_normal(dst: &PlacedShape, src: &PlacedShape, mask: CardMask) -> DirVec2 {
+    assert!(mask == CardMask::full(), "CardMask for circle-circle normal must be full");
+    circle_circle_normal(dst, src)
+}
+
+pub fn masked_rect_circle_normal(dst: &PlacedShape, src: &PlacedShape, mask: CardMask) -> DirVec2 {
+    let sector = dst.sector(src.pos);
+    if mask_has_corner_sector(sector, mask.flip()) {
+        circle_circle_normal(&PlacedShape::new(dst.corner(sector), Shape::circle(0.0)), src)
+    } else {
+        masked_rect_rect_normal(dst, src, mask)
+    }
+}
+
+fn mask_has_corner_sector(sector: Sector, mask: CardMask) -> bool {
+    if let Some((h_card, v_card)) = sector.corner_cards() {
+        mask[h_card] && mask[v_card]
+    } else {
+        false
     }
 }

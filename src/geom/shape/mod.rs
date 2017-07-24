@@ -14,7 +14,7 @@
 
 use std::cmp::Ordering;
 
-use geom::{Vec2, DirVec2, v2, Card};
+use geom::{Vec2, DirVec2, v2, Card, CardMask};
 use core::{Hitbox, HbVel};
 use float::n64;
 
@@ -124,17 +124,17 @@ impl PlacedShape {
         self.shape.dims()
     }
 
-    /// Returns the lowest y coordinate of the `PlacedShape`.
-    pub fn bottom(&self) -> f64 { self.bounds_bottom() }
-
     /// Returns the lowest x coordinate of the `PlacedShape`.
-    pub fn left(&self) -> f64 { self.bounds_left() }
+    pub fn min_x(&self) -> f64 { self.bounds_left() }
 
-    /// Returns the highest y coordinate of the `PlacedShape`.
-    pub fn top(&self) -> f64 { self.bounds_top() }
+    /// Returns the lowest y coordinate of the `PlacedShape`.
+    pub fn min_y(&self) -> f64 { self.bounds_bottom() }
 
     /// Returns the highest x coordinate of the `PlacedShape`.
-    pub fn right(&self) -> f64 { self.bounds_right() }
+    pub fn max_x(&self) -> f64 { self.bounds_right() }
+
+    /// Returns the highest y coordinate of the `PlacedShape`.
+    pub fn max_y(&self) -> f64 { self.bounds_top() }
 
     /// Returns `true` if the two shapes overlap, subject to negligible numerical error.
     pub fn overlaps(&self, other: &PlacedShape) -> bool {
@@ -157,7 +157,22 @@ impl PlacedShape {
             (ShapeKind::Rect, ShapeKind::Rect) => normals::rect_rect_normal(self, other),
             (ShapeKind::Rect, ShapeKind::Circle) => normals::rect_circle_normal(self, other),
             (ShapeKind::Circle, ShapeKind::Rect) => normals::rect_circle_normal(other, self).flip(),
-            (ShapeKind::Circle, ShapeKind::Circle) => normals::circle_circle_normal(self, other)
+            (ShapeKind::Circle, ShapeKind::Circle) => normals::circle_circle_normal(self, other),
+        }
+    }
+
+    /// Returns a normal vector like `normal_from`, but only certain normal directions are permitted.
+    ///
+    /// A normal vector with a cardinal component that is not present in the `mask`
+    /// will not be returned, and the next-in-line normal vector will be used instead.
+    /// This function panics if `mask` is empty, or if both shapes are circles and
+    /// `mask` is anything but full.
+    pub fn masked_normal_from(&self, other: &PlacedShape, mask: CardMask) -> DirVec2 {
+        match (self.kind(), other.kind()) {
+            (ShapeKind::Rect, ShapeKind::Rect) => normals::masked_rect_rect_normal(self, other, mask),
+            (ShapeKind::Rect, ShapeKind::Circle) => normals::masked_rect_circle_normal(self, other, mask),
+            (ShapeKind::Circle, ShapeKind::Rect) => normals::masked_rect_circle_normal(other, self, mask.flip()).flip(),
+            (ShapeKind::Circle, ShapeKind::Circle) => normals::masked_circle_circle_normal(self, other, mask),
         }
     }
 
@@ -182,8 +197,8 @@ impl PlacedShape {
     }
 
     pub(crate) fn sector(&self, point: Vec2) -> Sector {
-        let x = interval_sector(self.left(), self.right(), point.x);
-        let y = interval_sector(self.bottom(), self.top(), point.y);
+        let x = interval_sector(self.min_x(), self.max_x(), point.x);
+        let y = interval_sector(self.min_y(), self.max_y(), point.y);
         Sector::new(x, y)
     }
 
@@ -192,10 +207,10 @@ impl PlacedShape {
     }
 
     pub(crate) fn bounding_box(&self, other: &PlacedShape) -> PlacedShape {
-        let right = self.right().max(other.right());
-        let top = self.top().max(other.top());
-        let left = self.left().min(other.left());
-        let bottom = self.bottom().min(other.bottom());
+        let right = self.max_x().max(other.max_x());
+        let top = self.max_y().max(other.max_y());
+        let left = self.min_x().min(other.min_x());
+        let bottom = self.min_y().min(other.min_y());
 
         let shape = Shape::rect(v2(right - left, top - bottom));
         let pos = v2(left + shape.dims().x * 0.5, bottom + shape.dims().y * 0.5);
@@ -218,18 +233,18 @@ pub(crate) trait PlacedBounds {
 
     fn edge(&self, card: Card) -> f64 {
         match card {
-            Card::Bottom => -self.bounds_bottom(),
-            Card::Left => -self.bounds_left(),
-            Card::Top => self.bounds_top(),
-            Card::Right => self.bounds_right(),
+            Card::MinusY => -self.bounds_bottom(),
+            Card::MinusX => -self.bounds_left(),
+            Card::PlusY => self.bounds_top(),
+            Card::PlusX => self.bounds_right(),
         }
     }
 
     fn max_edge(&self) -> f64 {
-        Card::vals().iter()
-                    .map(|&card| self.edge(card).abs())
-                    .max_by_key(|&edge| n64(edge))
-                    .unwrap()
+        Card::values().iter()
+                      .map(|&card| self.edge(card).abs())
+                      .max_by_key(|&edge| n64(edge))
+                      .unwrap()
     }
 
     fn card_overlap(&self, src: &Self, card: Card) -> f64 {
@@ -280,6 +295,17 @@ impl Sector {
     pub fn is_corner(&self) -> bool {
         self.x != Ordering::Equal && self.y != Ordering::Equal
     }
+
+    pub fn corner_cards(&self) -> Option<(Card, Card)> {
+        if self.is_corner() {
+            Some((
+                if self.x == Ordering::Greater { Card::PlusX } else { Card::MinusX },
+                if self.y == Ordering::Greater { Card::PlusY } else { Card::MinusY },
+            ))
+        } else {
+            None
+        }
+    }
 }
 
 #[cfg(test)]
@@ -308,10 +334,10 @@ mod tests {
     #[test]
     fn test_edges() {
         let shape = Shape::rect(v2(4.0, 6.0)).place(v2(3.0, 5.0));
-        assert!(shape.left() == 1.0);
-        assert!(shape.bottom() == 2.0);
-        assert!(shape.right() == 5.0);
-        assert!(shape.top() == 8.0);
+        assert!(shape.min_x() == 1.0);
+        assert!(shape.min_y() == 2.0);
+        assert!(shape.max_x() == 5.0);
+        assert!(shape.max_y() == 8.0);
     }
 
     #[test]
@@ -355,5 +381,28 @@ mod tests {
         assert!(dst.normal_from(&src) == DirVec2::new(v2(-1.0, 1.0), 1.25 - (2.0f64).sqrt()));
         let dst = Shape::circle(2.5).place(v2(2.0, 2.0));
         assert!(dst.normal_from(&src) == DirVec2::new(v2(1.0, 1.0), 1.25 - (2.0f64).sqrt()));
+    }
+
+    #[test]
+    fn test_masked_rect_rect_normal() {
+        let src = Shape::rect(v2(4.0, 4.0)).place(v2(1.0, 1.0));
+        let dst = Shape::rect(v2(8.0, 8.0)).place(v2(6.0, -5.0));
+        let mut mask = CardMask::full();
+        assert_eq!(dst.masked_normal_from(&src, mask), DirVec2::new(v2(0.0, -1.0), 0.0));
+        mask[Card::MinusY] = false;
+        assert_eq!(dst.masked_normal_from(&src, mask), DirVec2::new(v2(1.0, 0.0), 1.0));
+    }
+
+    #[test]
+    fn test_masked_rect_circle_normal() {
+        let src = Shape::rect(v2(2.0, 2.0)).place(v2(0.0, 0.0));
+        let dst = Shape::circle(2.5).place(v2(-2.0, 2.0));
+        let mut mask = CardMask::full();
+        assert_eq!(dst.masked_normal_from(&src, mask), DirVec2::new(v2(-1.0, 1.0), 1.25 - (2.0f64).sqrt()));
+        mask[Card::PlusX] = false;
+        assert_eq!(src.masked_normal_from(&dst, mask.flip()), DirVec2::new(v2(1.0, -1.0), 1.25 - (2.0f64).sqrt()));
+        assert_eq!(dst.masked_normal_from(&src, mask), DirVec2::new(v2(-1.0, 1.0), 1.25 - (2.0f64).sqrt()));
+        mask[Card::PlusY] = false;
+        assert_eq!(dst.masked_normal_from(&src, mask), DirVec2::new(v2(-1.0, 0.0), 0.25));
     }
 }

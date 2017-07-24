@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use std::ops::{Add, Sub, Mul, Neg, AddAssign, SubAssign, MulAssign};
+use geom::card::Card;
 
 /// A 2-D Cartesian vector using finite `f64` values.
 #[derive(PartialEq, Copy, Clone, Debug, Default)]
@@ -148,6 +149,17 @@ impl Neg for Vec2 {
     type Output = Vec2;
     fn neg(self) -> Vec2 {
         Vec2::new(-self.x, -self.y)
+    }
+}
+
+impl From<Card> for Vec2 {
+    fn from(card: Card) -> Vec2 {
+        match card {
+            Card::MinusX => v2(-1.0, 0.0),
+            Card::MinusY => v2(0.0, -1.0),
+            Card::PlusX => v2(1.0, 0.0),
+            Card::PlusY => v2(0.0, 1.0),
+        }
     }
 }
 

@@ -103,10 +103,5 @@ License](http://www.apache.org/licenses/LICENSE-2.0.html).
 (Note: this section is intended for people who have already familiarized themselves with the library.)
 
 There are a few new features that may be added in the more distant future, or if I receive high demand
-* Extending the functionality of `PlacedShape.normal_from` so that the user
-  may restrict which edges of a shape may induce a normal vector
-  (e.g. for a platform in a game that may be jumped through from below but landed on from above,
-  or for use in a wall made up of several rectangles lined up in a grid so that only normals
-  that point away from the wall are generated).
 * Adding right-triangles to the set of possible shapes.
   (Note: I do not intend to add general polygons)
