@@ -87,6 +87,7 @@ impl Shape {
     }
 
     /// Shorthand for `PlacedShape::new(pos, self)`.
+    #[inline]
     pub fn place(self, pos: Vec2) -> PlacedShape {
         PlacedShape::new(pos, self)
     }
@@ -177,21 +178,25 @@ impl PlacedShape {
     }
 
     /// Shorthand for `Hitbox::new(self, HbVel::moving(vel))`.
+    #[inline]
     pub fn moving(self, vel: Vec2) -> Hitbox {
         Hitbox::new(self, HbVel::moving(vel))
     }
 
     /// Shorthand for `Hitbox::new(self, HbVel::moving_until(vel, end_time))`.
+    #[inline]
     pub fn moving_until(self, vel: Vec2, end_time: f64) -> Hitbox {
         Hitbox::new(self, HbVel::moving_until(vel, end_time))
     }
 
     /// Shorthand for `Hitbox::new(self, HbVel::still())`.
+    #[inline]
     pub fn still(self) -> Hitbox {
         Hitbox::new(self, HbVel::still())
     }
 
     /// Shorthand for `Hitbox::new(self, HbVel::still_until(end_time))`.
+    #[inline]
     pub fn still_until(self, end_time: f64) -> Hitbox {
         Hitbox::new(self, HbVel::still_until(end_time))
     }

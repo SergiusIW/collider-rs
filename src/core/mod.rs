@@ -57,21 +57,25 @@ pub struct HbVel {
 
 impl HbVel {
     /// Creates an `HbVel` with the given `value`.
+    #[inline]
     pub fn moving(value: Vec2) -> HbVel {
         HbVel { value, resize: Vec2::zero(), end_time: f64::INFINITY }
     }
 
     /// Creates an `HbVel` with the given `value` and `end_time`.
+    #[inline]
     pub fn moving_until(value: Vec2, end_time: f64) -> HbVel {
         HbVel { value, resize: Vec2::zero(), end_time }
     }
 
     /// Creates a stationary `HbVel`.
+    #[inline]
     pub fn still() -> HbVel {
         HbVel { value: Vec2::zero(), resize: Vec2::zero(), end_time: f64::INFINITY }
     }
 
     /// Creates a stationary `HbVel` with the given `end_time`.
+    #[inline]
     pub fn still_until(end_time: f64) -> HbVel {
         HbVel { value: Vec2::zero(), resize: Vec2::zero(), end_time }
     }
@@ -102,6 +106,7 @@ pub struct Hitbox {
 
 impl Hitbox {
     /// Constructs a new hitbox with the given `value` and `vel`.
+    #[inline]
     pub fn new(value: PlacedShape, vel: HbVel) -> Hitbox {
         Hitbox { value, vel }
     }
