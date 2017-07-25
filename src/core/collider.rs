@@ -18,6 +18,7 @@ use core::events::{EventManager, EventKey, EventKeysMap, InternalEvent};
 use core::{Hitbox, HbVel, HbId, HIGH_TIME, HbProfile, HbGroup};
 use core::grid::Grid;
 use core::dur_hitbox::DurHitbox;
+use geom::PlacedShape;
 use util::TightSet;
 
 // TODO check that floating point values are within a good range when adding/updating hitboxes
@@ -226,6 +227,16 @@ impl <P: HbProfile> Collider<P> {
         self.hitboxes.get(&id_1)
                      .map(|info| info.overlaps.contains(&id_2))
                      .unwrap_or(false)
+    }
+
+    /// Returns the profiles of all hitboxes that overlap the given `shape` and interact with the given `profile`.
+    pub fn query_overlaps(&self, shape: &PlacedShape, profile: &P) -> Vec<P> {
+        self.grid.shape_cellmates(shape, profile.interact_groups()).iter()
+                 .map(|id| &self.hitboxes[id])
+                 .filter(|info| info.profile.can_interact(profile))
+                 .filter(|info| info.pub_hitbox_at_time(self.time).value.overlaps(shape))
+                 .map(|info| info.profile)
+                 .collect()
     }
 
     fn update_hitbox_tracking(&mut self, id: HbId, mut info: HitboxInfo<P>, old_hitbox: Option<DurHitbox>,

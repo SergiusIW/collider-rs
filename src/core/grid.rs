@@ -20,7 +20,7 @@ use core::{HbId, Hitbox, HbGroup};
 use core::dur_hitbox::DurHitbox;
 use util::TightSet;
 use index_rect::IndexRect;
-use geom::shape::PlacedBounds;
+use geom::shape::{PlacedShape, PlacedBounds};
 
 // Grid is a sparse 2D grid implemented as a HashMap. This is used as the
 // pruning method to decide which hitboxes to check for collisions.
@@ -68,33 +68,41 @@ impl Grid {
         }
     }
 
+    pub fn shape_cellmates(&self, shape: &PlacedShape, groups: &[HbGroup]) -> FnvHashSet<HbId> {
+        let bounds = self.index_bounds(shape);
+        self.overlapping_ids(None, bounds, groups)
+    }
+
     pub fn update_hitbox(&mut self, hitbox_id: HbId, group: HbGroup, old_hitbox: Option<&DurHitbox>,
                          new_hitbox: Option<&DurHitbox>, groups: &[HbGroup]) -> Option<FnvHashSet<HbId>>
     {
         assert!(new_hitbox.is_some() || groups.is_empty());
-        let old_area = old_hitbox.map(|old_hitbox| self.index_bounds(old_hitbox, group));
-        let new_area = new_hitbox.map(|new_hitbox| self.index_bounds(new_hitbox, group));
+        let old_area = old_hitbox.map(|old_hitbox| self.grid_area(old_hitbox, group));
+        let new_area = new_hitbox.map(|new_hitbox| self.grid_area(new_hitbox, group));
         self.update_area(hitbox_id, old_area, new_area);
-        new_area.map(|new_area| self.overlapping_ids(hitbox_id, new_area.rect, groups))
+        new_area.map(|new_area| self.overlapping_ids(Some(hitbox_id), new_area.rect, groups))
     }
 
-    fn index_bounds(&self, hitbox: &DurHitbox, group: HbGroup) -> GridArea {
-        let bounds = hitbox.bounding_box();
+    fn grid_area(&self, hitbox: &DurHitbox, group: HbGroup) -> GridArea {
+        GridArea { rect: self.index_bounds(&hitbox.bounding_box()), group: group }
+    }
+
+    fn index_bounds(&self, bounds: &PlacedShape) -> IndexRect {
         let start_x = (bounds.min_x() / self.cell_width).floor() as i32;
         let start_y = (bounds.min_y() / self.cell_width).floor() as i32;
         let end_x = cmp::max((bounds.max_x() / self.cell_width).ceil() as i32, start_x + 1);
         let end_y = cmp::max((bounds.max_y() / self.cell_width).ceil() as i32, start_y + 1);
-        GridArea { rect : IndexRect::new((start_x, start_y), (end_x, end_y)), group : group }
+        IndexRect::new((start_x, start_y), (end_x, end_y))
     }
 
-    fn overlapping_ids(&self, hitbox_id: HbId, rect: IndexRect, groups: &[HbGroup]) -> FnvHashSet<HbId> {
+    fn overlapping_ids(&self, hitbox_id: Option<HbId>, rect: IndexRect, groups: &[HbGroup]) -> FnvHashSet<HbId> {
         let mut result = FnvHashSet::default();
         for &group in groups {
             for coord in rect.iter() {
                 let key = GridKey { coord : coord, group : group };
                 if let Some(other_ids) = self.map.get(&key) {
                     for &other_id in other_ids.iter() {
-                        if other_id != hitbox_id { result.insert(other_id); }
+                        if Some(other_id) != hitbox_id { result.insert(other_id); }
                     }
                 }
             }
