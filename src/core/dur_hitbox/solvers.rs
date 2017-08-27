@@ -109,7 +109,12 @@ fn rect_circle_collide_time(rect: &DurHitbox, circle: &DurHitbox, duration: f64)
     if base_time >= duration {
         f64::INFINITY
     } else {
-        base_time + rebased_rect_circle_collide_time(rect, circle)
+        let mut rect = rect.clone();
+        rect.value = rect.advanced_shape(base_time);
+        let mut circle = circle.clone();
+        circle.value = circle.advanced_shape(base_time);
+
+        base_time + rebased_rect_circle_collide_time(&rect, &circle)
     }
 }
 

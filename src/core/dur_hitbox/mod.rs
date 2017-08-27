@@ -144,6 +144,18 @@ mod tests {
     }
 
     #[test]
+    fn test_rect_circle_angled_collision() {
+        let mut a = DurHitbox::new(PlacedShape::new(v2(0., 0.), Shape::square(2.)));
+        a.vel.duration = 100.0;
+        let mut b = DurHitbox::new(PlacedShape::new(v2(5., 5.), Shape::circle(2.)));
+        b.vel.value = v2(-1., -1.);
+        b.vel.duration = 100.0;
+        let collide_time = a.collide_time(&b);
+        let expected_time = 4. - 1. / 2f64.sqrt();
+        assert_eq!(collide_time, expected_time);
+    }
+
+    #[test]
     fn test_rect_rect_separation() {
         let mut a = DurHitbox::new(PlacedShape::new(v2(0.0, 0.0), Shape::rect(v2(6.0, 4.0))));
         a.vel.value = v2(1.0, 1.0);
@@ -180,6 +192,18 @@ mod tests {
         assert!(a.separate_time(&b, 0.1) == 1.0 + sqrt2);
         assert!(b.separate_time(&a, 0.1) == 1.0 + sqrt2);
         assert!(a.collide_time(&b) == 0.0);
+    }
+
+    #[test]
+    fn test_rect_circle_angled_separation() {
+        let mut a = DurHitbox::new(PlacedShape::new(v2(0., 0.), Shape::square(2.)));
+        a.vel.duration = 100.0;
+        let mut b = DurHitbox::new(PlacedShape::new(v2(-1., 1.), Shape::circle(2.)));
+        b.vel.value = v2(1., -1.);
+        b.vel.duration = 100.0;
+        let separate_time = a.separate_time(&b, 0.1);
+        let expected_time = 2. + 1.1 / 2f64.sqrt();
+        assert_eq!(separate_time, expected_time);
     }
 
     #[test]
