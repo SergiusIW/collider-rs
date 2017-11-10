@@ -108,20 +108,20 @@ impl <P: HbProfile> Collider<P> {
                     Collider::process_collision(id_1, &mut hitbox_info_1, id_2, hitbox_info_2,
                                                 &mut self.events, self.time, self.padding);
                 }
-                assert!(self.hitboxes.insert(id_1, hitbox_info_1).is_none(), "illegal state");
+                assert!(self.hitboxes.insert(id_1, hitbox_info_1).is_none());
                 Some(new_event(HbEvent::Collide, id_1, id_2))
             },
             InternalEvent::Separate(id_1, id_2) => {
                 let mut hitbox_info_1 = self.hitboxes.remove(&id_1).unwrap();
                 {
                     let hitbox_info_2 = self.hitboxes.get_mut(&id_2).unwrap();
-                    assert!(hitbox_info_1.overlaps.remove(&id_2), "illegal state");
-                    assert!(hitbox_info_2.overlaps.remove(&id_1), "illegal state");
+                    assert!(hitbox_info_1.overlaps.remove(&id_2));
+                    assert!(hitbox_info_2.overlaps.remove(&id_1));
                     let delay = hitbox_info_1.hitbox_at_time(self.time).collide_time(&hitbox_info_2.hitbox_at_time(self.time));
                     self.events.add_pair_event(self.time + delay, InternalEvent::Collide(id_1, id_2),
                         &mut hitbox_info_1.event_keys, &mut hitbox_info_2.event_keys);
                 }
-                assert!(self.hitboxes.insert(id_1, hitbox_info_1).is_none(), "illegal state");
+                assert!(self.hitboxes.insert(id_1, hitbox_info_1).is_none());
                 Some(new_event(HbEvent::Separate, id_1, id_2))
             },
             InternalEvent::Reiterate(id) => {
@@ -194,7 +194,7 @@ impl <P: HbProfile> Collider<P> {
         self.solitaire_event_check(id, &mut info, has_group);
         let new_hitbox = info.hitbox.to_dur_hitbox(self.time);
         let result = self.update_hitbox_tracking(id, info, Some(old_hitbox), new_hitbox);
-        assert!(result.is_empty(), "illegal state");
+        assert!(result.is_empty());
     }
 
     /// Removes the hitbox with the given `id` from all tracking.
@@ -277,7 +277,7 @@ impl <P: HbProfile> Collider<P> {
     fn clear_overlaps(&mut self, id: HbId, hitbox_info: &mut HitboxInfo<P>) -> Vec<P> {
         hitbox_info.overlaps.drain().map(|other_id| {
             let other_hitbox_info = self.hitboxes.get_mut(&other_id).unwrap();
-            assert!(other_hitbox_info.overlaps.remove(&id), "illegal state");
+            assert!(other_hitbox_info.overlaps.remove(&id));
             other_hitbox_info.profile
         }).collect()
     }

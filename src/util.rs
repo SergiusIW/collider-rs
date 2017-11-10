@@ -97,7 +97,7 @@ mod one_or_two {
             match self {
                 OneOrTwo::One(id_1) if id_1 == id => None,
                 OneOrTwo::Two(id_1, id_2) | OneOrTwo::Two(id_2, id_1) if id_1 == id => Some(id_2),
-                _ => panic!("illegal state")
+                _ => panic!()
             }
         }
 

@@ -106,8 +106,8 @@ impl EventManager {
 
     pub fn add_solitaire_event(&mut self, time: f64, event: InternalEvent, key_set: &mut TightSet<EventKey>) {
         if let Some(key) = self.new_event_key(time, false) {
-            assert!(self.events.insert(key, event).is_none(), "illegal state");
-            assert!(key_set.insert(key), "illegal state");
+            assert!(self.events.insert(key, event).is_none());
+            assert!(key_set.insert(key));
         }
     }
 
@@ -115,9 +115,9 @@ impl EventManager {
         second_key_set: &mut TightSet<EventKey>)
     {
         if let Some(key) = self.new_event_key(time, true) {
-            assert!(self.events.insert(key, event).is_none(), "illegal state");
-            assert!(first_key_set.insert(key), "illegal state");
-            assert!(second_key_set.insert(key), "illegal state");
+            assert!(self.events.insert(key, event).is_none());
+            assert!(first_key_set.insert(key));
+            assert!(second_key_set.insert(key));
         }
     }
 
@@ -125,7 +125,7 @@ impl EventManager {
         for key in key_set.iter() {
             let event = self.events.remove(key).unwrap();
             if let Some(other_id) = event.other_id(id) {
-                assert!(map.event_keys_mut(other_id).remove(key), "illegal state");
+                assert!(map.event_keys_mut(other_id).remove(key));
             }
         }
         key_set.clear();
@@ -137,7 +137,7 @@ impl EventManager {
         } else {
             let mut index = self.next_event_index;
             self.next_event_index += 1;
-            assert!(index < PAIR_BASE, "illegal state");
+            assert!(index < PAIR_BASE);
             if for_pair { index += PAIR_BASE; }
             let result = EventKey { time: time, index: index };
             Some(result)
@@ -153,7 +153,7 @@ impl EventManager {
             if key.time() == time {
                 let event = self.events.remove(&key).unwrap();
                 for id in event.involved_hitbox_ids().iter() {
-                    assert!(map.event_keys_mut(id).remove(&key), "illegal state");
+                    assert!(map.event_keys_mut(id).remove(&key));
                 }
                 Some(event)
             } else {
