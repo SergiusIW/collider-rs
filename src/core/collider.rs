@@ -243,6 +243,12 @@ impl <P: HbProfile> Collider<P> {
                               new_hitbox: DurHitbox) -> Vec<P> {
         let mut result = Vec::new();
         if let Some(group) = info.profile.group() {
+            for &other_id in info.overlaps.clone().iter() {
+                let other_info = self.hitboxes.get_mut(&other_id).unwrap();
+                let delay = new_hitbox.separate_time(&other_info.hitbox_at_time(self.time), self.padding);
+                self.events.add_pair_event(self.time + delay, InternalEvent::Separate(id, other_id),
+                    &mut info.event_keys, &mut other_info.event_keys);
+            }
             let test_ids = self.grid.update_hitbox(
                 id, group, old_hitbox.as_ref(), Some(&new_hitbox), info.profile.interact_groups()
             ).unwrap();
@@ -261,12 +267,6 @@ impl <P: HbProfile> Collider<P> {
                         }
                     }
                 }
-            }
-            for &other_id in info.overlaps.clone().iter() {
-                let other_info = self.hitboxes.get_mut(&other_id).unwrap();
-                let delay = new_hitbox.separate_time(&other_info.hitbox_at_time(self.time), self.padding);
-                self.events.add_pair_event(self.time + delay, InternalEvent::Separate(id, other_id),
-                    &mut info.event_keys, &mut other_info.event_keys);
             }
         }
 

@@ -217,4 +217,19 @@ fn test_query_overlaps() {
     assert_eq!(sort(collider.query_overlaps(&test_shape, &5.into())), vec![0.into(), 1.into()]);
 }
 
+#[test]
+fn test_separate_initial_overlap() {
+    let mut collider = Collider::<TestHbProfile>::new();
+
+    let overlaps = collider.add_hitbox(0.into(), Shape::square(1.).place(v2(0., 0.)).moving(v2(0.0, 1.)));
+    assert_eq!(overlaps, vec![]);
+    let overlaps = collider.add_hitbox(1.into(), Shape::square(1.).place(v2(0., 0.)).still());
+    assert_eq!(overlaps, vec![0.into()]);
+
+    advance_to_event(&mut collider, 1.25);
+    assert_eq!(collider.next(), Some((HbEvent::Separate, 0.into(), 1.into())));
+
+    advance(&mut collider, 1.5);
+}
+
 //TODO test custom interactivities...
