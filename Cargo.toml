@@ -1,9 +1,9 @@
 [package]
 name = "collider"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Matthew Michelotti <matthew@matthewmichelotti.com>"]
 description = "A library for continuous 2D collision detection for game developement"
-documentation = "http://www.matthewmichelotti.com/projects/collider/rustdoc/collider/"
+documentation = "https://docs.rs/collider/"
 homepage = "http://www.matthewmichelotti.com/projects/collider/"
 repository = "https://github.com/SergiusIW/collider-rs"
 readme = "README.md"

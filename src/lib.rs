@@ -21,7 +21,7 @@
 //! on the other hand, means that the time of collision is determined very precisely,
 //! and the user is not restricted to a fixed time-stepping method.
 //! There are currently two kinds of shapes supported by Collider: circles and rectangles.
-//! The user specifies the positions and velocites of these shapes, which
+//! The user specifies the positions and velocities of these shapes, which
 //! they can update at any time, and Collider will solve for the precise times of
 //! collision and separation.
 //!
@@ -35,7 +35,7 @@
 //! Traditional collision detection may have an issue with "tunneling," in which a
 //! fast small object runs into a narrow wall and collision detection misses it,
 //! or two fast small objects fly right through each other and collision detection misses it.
-//! This is also not a problem for contiuous collision detection.
+//! This is also not a problem for continuous collision detection.
 //! It is also debatable that continuous collision detection may be
 //! more efficient in certain circumstances,
 //! since the hitboxes may be updated less frequently and still maintain a
