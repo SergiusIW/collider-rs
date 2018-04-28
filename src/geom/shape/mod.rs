@@ -177,6 +177,17 @@ impl PlacedShape {
         }
     }
 
+    /// Returns the point of contact between two shapes.
+    ///
+    /// If the shapes are not overlapping, returns the nearest point between the shapes.
+    pub fn contact_point(&self, other: &PlacedShape) -> Vec2 {
+        match (self.kind(), other.kind()) {
+            (ShapeKind::Rect, ShapeKind::Rect) => normals::rect_rect_contact(self, other),
+            (ShapeKind::Circle, _) => normals::circle_any_contact(self, other),
+            (ShapeKind::Rect, ShapeKind::Circle) => normals::circle_any_contact(other, self),
+        }
+    }
+
     /// Shorthand for `Hitbox::new(self, HbVel::moving(vel))`.
     #[inline]
     pub fn moving(self, vel: Vec2) -> Hitbox {
@@ -409,5 +420,29 @@ mod tests {
         assert_eq!(dst.masked_normal_from(&src, mask), DirVec2::new(v2(-1.0, 1.0), 1.25 - (2.0f64).sqrt()));
         mask[Card::PlusY] = false;
         assert_eq!(dst.masked_normal_from(&src, mask), DirVec2::new(v2(-1.0, 0.0), 0.25));
+    }
+
+    #[test]
+    fn test_rect_rect_contact() {
+        let a = Shape::rect(v2(4.0, 2.0)).place(v2(4.0, 10.0));
+        let b = Shape::rect(v2(2.0, 4.0)).place(v2(-2.0, 12.0));
+        assert_eq!(a.contact_point(&b), v2(0.5, 10.5));
+        assert_eq!(b.contact_point(&a), v2(0.5, 10.5));
+    }
+
+    #[test]
+    fn test_circle_circle_contact() {
+        let a = Shape::circle(2.0).place(v2(5.0, 15.0));
+        let b = Shape::circle(8.0).place(v2(5.0, 19.0));
+        assert_eq!(a.contact_point(&b), v2(5.0, 15.5));
+        assert_eq!(b.contact_point(&a), v2(5.0, 15.5));
+    }
+
+    #[test]
+    fn test_circle_rect_contact() {
+        let a = Shape::circle(2.0).place(v2(5.0, 15.0));
+        let b = Shape::rect(v2(4.0, 8.0)).place(v2(2.0, 18.0));
+        assert_eq!(a.contact_point(&b), v2(4.0, 15.0));
+        assert_eq!(b.contact_point(&a), v2(4.0, 15.0));
     }
 }

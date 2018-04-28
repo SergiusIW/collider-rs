@@ -73,3 +73,19 @@ fn mask_has_corner_sector(sector: Sector, mask: CardMask) -> bool {
         false
     }
 }
+
+pub fn circle_any_contact(a: &PlacedShape, b: &PlacedShape) -> Vec2 {
+    let normal = a.normal_from(b);
+    a.pos + normal.dir() * (normal.len() - a.shape.dims().x) * 0.5
+}
+
+pub fn rect_rect_contact(a: &PlacedShape, b: &PlacedShape) -> Vec2 {
+    v2(
+        rect_rect_contact_1d(a.min_x(), a.max_x(), b.min_x(), b.max_x()),
+        rect_rect_contact_1d(a.min_y(), a.max_y(), b.min_y(), b.max_y()),
+    )
+}
+
+fn rect_rect_contact_1d(a_min: f64, a_max: f64, b_min: f64, b_max: f64) -> f64 {
+    0.5 * (a_min.max(b_min) + b_max.min(a_max))
+}
