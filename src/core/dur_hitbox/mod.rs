@@ -111,9 +111,9 @@ mod tests {
         b.vel.value = v2(-0.5, 0.0);
         b.vel.resize = v2(1.0, 0.0);
         b.vel.duration = 100.0;
-        assert!(a.collide_time(&b) == 7.0);
-        assert!(b.collide_time(&a) == 7.0);
-        assert!(a.separate_time(&b, 0.1) == 0.0);
+        assert_eq!(a.collide_time(&b), 7.0);
+        assert_eq!(b.collide_time(&a), 7.0);
+        assert_eq!(a.separate_time(&b, 0.1), 0.0);
     }
 
     #[test]
@@ -127,7 +127,7 @@ mod tests {
         b.vel.resize = v2(-0.1, -0.1);
         b.vel.duration = 100.0;
         assert!((a.collide_time(&b) - sqrt2).abs() < 1e-7);
-        assert!(a.separate_time(&b, 0.1) == 0.0);
+        assert_eq!(a.separate_time(&b, 0.1), 0.0);
     }
 
     #[test]
@@ -138,9 +138,9 @@ mod tests {
         let mut b = DurHitbox::new(PlacedShape::new(v2(12.0, 2.0), Shape::rect(v2(2.0, 4.0))));
         b.vel.value = v2(-1.0, 0.0);
         b.vel.duration = 100.0;
-        assert!(a.collide_time(&b) == 7.0);
-        assert!(b.collide_time(&a) == 7.0);
-        assert!(a.separate_time(&b, 0.1) == 0.0);
+        assert_eq!(a.collide_time(&b), 7.0);
+        assert_eq!(b.collide_time(&a), 7.0);
+        assert_eq!(a.separate_time(&b, 0.1), 0.0);
     }
 
     #[test]
@@ -163,9 +163,9 @@ mod tests {
         let mut b = DurHitbox::new(PlacedShape::new(v2(1.0, 0.0), Shape::rect(v2(4.0, 4.0))));
         b.vel.value = v2(0.5, 0.0);
         b.vel.duration = 100.0;
-        assert!(a.separate_time(&b, 0.1) == 4.1);
-        assert!(b.separate_time(&a, 0.1) == 4.1);
-        assert!(a.collide_time(&b) == 0.0);
+        assert_eq!(a.separate_time(&b, 0.1), 4.1);
+        assert_eq!(b.separate_time(&a, 0.1), 4.1);
+        assert_eq!(a.collide_time(&b), 0.0);
     }
 
     #[test]
@@ -176,9 +176,9 @@ mod tests {
         let mut b = DurHitbox::new(PlacedShape::new(v2(3.0, 4.0), Shape::circle(1.8)));
         b.vel.value = v2(-1.0, 1.0);
         b.vel.duration = 100.0;
-        assert!(a.separate_time(&b, 0.1) == 1.0 + sqrt2);
-        assert!(b.separate_time(&a, 0.1) == 1.0 + sqrt2);
-        assert!(a.collide_time(&b) == 0.0);
+        assert_eq!(a.separate_time(&b, 0.1), 1.0 + sqrt2);
+        assert_eq!(b.separate_time(&a, 0.1), 1.0 + sqrt2);
+        assert_eq!(a.collide_time(&b), 0.0);
     }
 
     #[test]
@@ -189,9 +189,9 @@ mod tests {
         let mut b = DurHitbox::new(PlacedShape::new(v2(3.0, 4.0), Shape::circle(3.8)));
         b.vel.value = v2(-1.0, 1.0);
         b.vel.duration = 100.0;
-        assert!(a.separate_time(&b, 0.1) == 1.0 + sqrt2);
-        assert!(b.separate_time(&a, 0.1) == 1.0 + sqrt2);
-        assert!(a.collide_time(&b) == 0.0);
+        assert_eq!(a.separate_time(&b, 0.1), 1.0 + sqrt2);
+        assert_eq!(b.separate_time(&a, 0.1), 1.0 + sqrt2);
+        assert_eq!(a.collide_time(&b), 0.0);
     }
 
     #[test]
@@ -214,18 +214,18 @@ mod tests {
         let mut b = DurHitbox::new(PlacedShape::new(v2(12.0, 2.0), Shape::rect(v2(2.0, 4.0))));
         b.vel.value = v2(-1.0, 1.0);
         b.vel.duration = 100.0;
-        assert!(a.collide_time(&b) == f64::INFINITY);
-        assert!(a.separate_time(&b, 0.1) == 0.0);
+        assert_eq!(a.collide_time(&b), f64::INFINITY);
+        assert_eq!(a.separate_time(&b, 0.1), 0.0);
 
         b.value.shape == Shape::circle(2.0);
         b.vel.resize == Vec2::zero();
-        assert!(a.collide_time(&b) == f64::INFINITY);
-        assert!(a.separate_time(&b, 0.1) == 0.0);
+        assert_eq!(a.collide_time(&b), f64::INFINITY);
+        assert_eq!(a.separate_time(&b, 0.1), 0.0);
 
         a.value.shape == Shape::circle(2.0);
         a.vel.resize == Vec2::zero();
-        assert!(a.collide_time(&b) == f64::INFINITY);
-        assert!(a.separate_time(&b, 0.1) == 0.0);
+        assert_eq!(a.collide_time(&b), f64::INFINITY);
+        assert_eq!(a.separate_time(&b, 0.1), 0.0);
     }
 
     #[test]
@@ -236,18 +236,18 @@ mod tests {
         let mut b = DurHitbox::new(PlacedShape::new(v2(5.0, 1.0), Shape::rect(v2(2.0, 4.0))));
         b.vel.value = v2(2.0, 1.0);
         b.vel.duration = 100.0;
-        assert!(a.separate_time(&b, 0.1) == f64::INFINITY);
-        assert!(a.collide_time(&b) == 0.0);
+        assert_eq!(a.separate_time(&b, 0.1), f64::INFINITY);
+        assert_eq!(a.collide_time(&b), 0.0);
 
         b.value.shape == Shape::circle(2.0);
         b.vel.resize == Vec2::zero();
-        assert!(a.separate_time(&b, 0.1) == f64::INFINITY);
-        assert!(a.collide_time(&b) == 0.0);
+        assert_eq!(a.separate_time(&b, 0.1), f64::INFINITY);
+        assert_eq!(a.collide_time(&b), 0.0);
 
         a.value.shape == Shape::circle(2.0);
         a.vel.resize == Vec2::zero();
-        assert!(a.separate_time(&b, 0.1) == f64::INFINITY);
-        assert!(a.collide_time(&b) == 0.0);
+        assert_eq!(a.separate_time(&b, 0.1), f64::INFINITY);
+        assert_eq!(a.collide_time(&b), 0.0);
     }
 
     #[test]
@@ -258,10 +258,10 @@ mod tests {
         let mut b = DurHitbox::new(PlacedShape::new(v2(4.0, 4.0), Shape::circle(2.0)));
         b.vel.value = v2(-1.0, -1.0);
         b.vel.duration = 4.0 - sqrt2 + 0.01;
-        assert!(a.collide_time(&b) == 4.0 - sqrt2);
+        assert_eq!(a.collide_time(&b), 4.0 - sqrt2);
         a.vel.duration -= 0.02;
-        assert!(a.collide_time(&b) == f64::INFINITY);
+        assert_eq!(a.collide_time(&b), f64::INFINITY);
         b.vel.duration -= 0.02;
-        assert!(a.collide_time(&b) == f64::INFINITY);
+        assert_eq!(a.collide_time(&b), f64::INFINITY);
     }
 }

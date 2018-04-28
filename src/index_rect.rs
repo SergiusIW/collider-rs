@@ -84,7 +84,7 @@ mod tests {
             assert!(y >= 3 && y < 7);
             assert!(set.insert((x, y)));
         }
-        assert!(set.len() == 12);
+        assert_eq!(set.len(), 12);
     }
 
     #[test]

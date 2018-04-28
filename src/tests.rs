@@ -34,7 +34,7 @@ impl HbProfile for TestHbProfile {
 
 fn advance_to_event(collider: &mut Collider<TestHbProfile>, time: f64) {
     advance(collider, time);
-    assert!(collider.next_time() == collider.time());
+    assert_eq!(collider.next_time(), collider.time());
 }
 
 fn advance(collider: &mut Collider<TestHbProfile>, time: f64) {
@@ -43,7 +43,7 @@ fn advance(collider: &mut Collider<TestHbProfile>, time: f64) {
         let new_time = collider.next_time().min(time);
         collider.set_time(new_time);
     }
-    assert!(collider.time() == time);
+    assert_eq!(collider.time(), time);
 }
 
 fn advance_through_events(collider: &mut Collider<TestHbProfile>, time: f64) {
@@ -52,7 +52,7 @@ fn advance_through_events(collider: &mut Collider<TestHbProfile>, time: f64) {
         let new_time = collider.next_time().min(time);
         collider.set_time(new_time);
     }
-    assert!(collider.time() == time);
+    assert_eq!(collider.time(), time);
 }
 
 fn sort(mut vector: Vec<TestHbProfile>) -> Vec<TestHbProfile> {
