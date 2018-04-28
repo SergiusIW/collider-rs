@@ -1,6 +1,6 @@
 [package]
 name = "collider"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Matthew Michelotti <matthew@matthewmichelotti.com>"]
 description = "A library for continuous 2D collision detection for game developement"
 documentation = "https://docs.rs/collider/"
