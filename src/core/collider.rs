@@ -37,9 +37,25 @@ pub struct Collider<P: HbProfile> {
 
 impl <P: HbProfile> Collider<P> {
     /// Constructs a new `Collider` instance.
-    pub fn new() -> Collider<P> {
-        let cell_width = P::cell_width();
-        let padding = P::padding();
+    /// To reduce the number of overlaps that are tested, hitboxes are placed in
+    /// a sparse grid structure behind the scenes. `cell_width` is the width of
+    /// the cells used in that grid. If your game has a similar grid concept,
+    /// then it is usually a good choice to use the same cell width as that
+    /// grid. Otherwise, a good choice is to use a width that is slightly larger
+    /// than most of the hitboxes.
+    ///
+    /// Collider generates both `Collide` and `Separate` events. However, due to
+    /// numerical error, it is important that two hitboxes be a certain small
+    /// distance apart from each other after a collision before they are
+    /// considered separated. Otherwise, false separation events may occur if,
+    /// for example, a sprite runs into a wall and stops, still touching the
+    /// wall. `padding` is used to describe what this minimum separation
+    /// distance is. This should typically be something that is not visible to
+    /// the user, perhaps a fraction of a "pixel."
+    ///
+    /// Another restriction introduced by `padding` is that hitboxes are not
+    /// allowed to have a width or height smaller than `padding`.
+    pub fn new(cell_width: f64, padding: f64) -> Collider<P> {
         assert!(cell_width > padding, "requires cell_width > padding");
         assert!(padding > 0.0, "requires padding > 0.0");
         Collider {

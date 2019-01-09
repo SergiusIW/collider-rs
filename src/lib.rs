@@ -52,11 +52,9 @@
 //! impl HbProfile for DemoHbProfile {
 //!     fn id(&self) -> HbId { self.id }
 //!     fn can_interact(&self, _other: &DemoHbProfile) -> bool { true }
-//!     fn cell_width() -> f64 { 4.0 }
-//!     fn padding() -> f64 { 0.01 }
 //! }
 //!
-//! let mut collider: Collider<DemoHbProfile> = Collider::new();
+//! let mut collider: Collider<DemoHbProfile> = Collider::new(4.0, 0.01);
 //!
 //! let hitbox = Shape::square(2.0).place(v2(-10.0, 0.0)).moving(v2(1.0, 0.0));
 //! let overlaps = collider.add_hitbox(DemoHbProfile { id: 0 }, hitbox);

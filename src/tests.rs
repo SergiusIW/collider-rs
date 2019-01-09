@@ -28,8 +28,6 @@ impl From<HbId> for TestHbProfile {
 impl HbProfile for TestHbProfile {
     fn id(&self) -> HbId { self.id }
     fn can_interact(&self, _other: &TestHbProfile) -> bool { true }
-    fn cell_width() -> f64 { 4.0 }
-    fn padding() -> f64 { 0.25 }
 }
 
 fn advance_to_event(collider: &mut Collider<TestHbProfile>, time: f64) {
@@ -62,7 +60,7 @@ fn sort(mut vector: Vec<TestHbProfile>) -> Vec<TestHbProfile> {
 
 #[test]
 fn smoke_test() {
-    let mut collider = Collider::<TestHbProfile>::new();
+    let mut collider = Collider::<TestHbProfile>::new(4.0, 0.25);
 
     let mut hitbox = Shape::square(2.0).place(v2(-10.0, 0.0)).still();
     hitbox.vel.value = v2(1.0, 0.0);
@@ -83,7 +81,7 @@ fn smoke_test() {
 
 #[test]
 fn test_hitbox_updates() {
-    let mut collider = Collider::<TestHbProfile>::new();
+    let mut collider = Collider::<TestHbProfile>::new(4.0, 0.25);
 
     let mut hitbox = Shape::square(2.0).place(v2(-10.0, 0.0)).still();
     hitbox.vel.value = v2(1.0, 0.0);
@@ -159,7 +157,7 @@ fn test_hitbox_updates() {
 
 #[test]
 fn test_get_overlaps() {
-    let mut collider = Collider::<TestHbProfile>::new();
+    let mut collider = Collider::<TestHbProfile>::new(4.0, 0.25);
 
     collider.add_hitbox(0.into(), Shape::square(2.0).place(v2(-10.0, 0.0)).moving(v2(1.0, 0.0)));
     collider.add_hitbox(1.into(), Shape::circle(2.0).place(v2(10.0, 0.0)).moving(v2(-1.0, 0.0)));
@@ -204,7 +202,7 @@ fn test_get_overlaps() {
 
 #[test]
 fn test_query_overlaps() {
-    let mut collider = Collider::<TestHbProfile>::new();
+    let mut collider = Collider::<TestHbProfile>::new(4.0, 0.25);
 
     collider.add_hitbox(0.into(), Shape::square(2.0).place(v2(-5.0, 0.0)).moving(v2(1.0, 0.0)));
     collider.add_hitbox(1.into(), Shape::circle(2.0).place(v2(0.0, 0.0)).still());
@@ -219,7 +217,7 @@ fn test_query_overlaps() {
 
 #[test]
 fn test_separate_initial_overlap() {
-    let mut collider = Collider::<TestHbProfile>::new();
+    let mut collider = Collider::<TestHbProfile>::new(4.0, 0.25);
 
     let overlaps = collider.add_hitbox(0.into(), Shape::square(1.).place(v2(0., 0.)).moving(v2(0.0, 1.)));
     assert_eq!(overlaps, vec![]);

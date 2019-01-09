@@ -190,31 +190,4 @@ pub trait HbProfile: Copy {
     /// This method should be consistent with `group` and `interact_groups`,
     /// although possibly more restrictive.
     fn can_interact(&self, other: &Self) -> bool;
-
-    /// The width of the cells used in the Collider grid.
-    ///
-    /// To reduce the number of overlaps that are tested,
-    /// hitboxes are placed in a sparse grid structure behind the scenes.
-    /// `cell_width` is the width of the cells used in that grid.
-    /// If your game has a similar grid concept, then it is usually a good choice
-    /// to use the same cell width as that grid.
-    /// Otherwise, a good choice is to use a width that is slightly larger
-    /// than most of the hitboxes.
-    fn cell_width() -> f64;
-
-    /// The minimum distance before two hitboxes are considered separated.
-    ///
-    /// Collider generates both `Collide` and `Separate` events.
-    /// However, due to numerical error, it is important that two hitboxes
-    /// be a certain small distance apart from each other after a collision
-    /// before they are considered separated.
-    /// Otherwise, false separation events may occur if, for example,
-    /// a sprite runs into a wall and stops, still touching the wall.
-    /// `padding` is used to describe what this minimum separation distance is.
-    /// This should typically be something that is not visible to the
-    /// user, perhaps a fraction of a "pixel."
-    ///
-    /// Another restriction introduced by `padding` is that hitboxes are not
-    /// allowed to have a width or height smaller than `padding`.
-    fn padding() -> f64;
 }
