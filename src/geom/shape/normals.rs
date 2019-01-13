@@ -12,15 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use geom::*;
-use geom::shape::{PlacedBounds, Sector};
 use float::n64;
+use geom::shape::{PlacedBounds, Sector};
+use geom::*;
 
 // This module contains methods to solve for the normal vector
 // between two PlacedShapes.
 
 pub fn rect_rect_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {
-    let (card, overlap) = Card::values().iter().cloned()
+    let (card, overlap) = Card::values()
+        .iter()
+        .cloned()
         .map(|card| (card, dst.card_overlap(src, card)))
         .min_by_key(|&(_, overlap)| n64(overlap))
         .unwrap();
@@ -30,21 +32,28 @@ pub fn rect_rect_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {
 pub fn circle_circle_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {
     let mut dir = dst.pos - src.pos;
     let dist = dir.len();
-    if dist == 0.0 { dir = v2(1.0, 0.0); }
+    if dist == 0.0 {
+        dir = v2(1.0, 0.0);
+    }
     DirVec2::new(dir, (src.dims().x + dst.dims().x) * 0.5 - dist)
 }
 
 pub fn rect_circle_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {
     let sector = dst.sector(src.pos);
     if sector.is_corner() {
-        circle_circle_normal(&PlacedShape::new(dst.corner(sector), Shape::circle(0.0)), src)
+        circle_circle_normal(
+            &PlacedShape::new(dst.corner(sector), Shape::circle(0.0)),
+            src,
+        )
     } else {
         rect_rect_normal(dst, src)
     }
 }
 
 pub fn masked_rect_rect_normal(dst: &PlacedShape, src: &PlacedShape, mask: CardMask) -> DirVec2 {
-    let (card, overlap) = Card::values().iter().cloned()
+    let (card, overlap) = Card::values()
+        .iter()
+        .cloned()
         .filter(|&card| mask[card])
         .map(|card| (card, dst.card_overlap(src, card)))
         .min_by_key(|&(_, overlap)| n64(overlap))
@@ -52,15 +61,25 @@ pub fn masked_rect_rect_normal(dst: &PlacedShape, src: &PlacedShape, mask: CardM
     DirVec2::new(card.into(), overlap)
 }
 
-pub fn masked_circle_circle_normal(dst: &PlacedShape, src: &PlacedShape, mask: CardMask) -> DirVec2 {
-    assert!(mask == CardMask::full(), "CardMask for circle-circle normal must be full");
+pub fn masked_circle_circle_normal(
+    dst: &PlacedShape,
+    src: &PlacedShape,
+    mask: CardMask,
+) -> DirVec2 {
+    assert!(
+        mask == CardMask::full(),
+        "CardMask for circle-circle normal must be full"
+    );
     circle_circle_normal(dst, src)
 }
 
 pub fn masked_rect_circle_normal(dst: &PlacedShape, src: &PlacedShape, mask: CardMask) -> DirVec2 {
     let sector = dst.sector(src.pos);
     if mask_has_corner_sector(sector, mask.flip()) {
-        circle_circle_normal(&PlacedShape::new(dst.corner(sector), Shape::circle(0.0)), src)
+        circle_circle_normal(
+            &PlacedShape::new(dst.corner(sector), Shape::circle(0.0)),
+            src,
+        )
     } else {
         masked_rect_rect_normal(dst, src, mask)
     }

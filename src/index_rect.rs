@@ -23,7 +23,10 @@ pub struct IndexRect {
 impl IndexRect {
     // start is inclusive, end is exclusive
     pub fn new(start: (i32, i32), end: (i32, i32)) -> IndexRect {
-        assert!(start.0 < end.0 && start.1 < end.1, "IndexRect contains no elements");
+        assert!(
+            start.0 < end.0 && start.1 < end.1,
+            "IndexRect contains no elements"
+        );
         IndexRect { start, end }
     }
 
@@ -38,12 +41,12 @@ impl IndexRect {
 
 pub struct Iter {
     rect: IndexRect,
-    val: Option<(i32, i32)>
+    val: Option<(i32, i32)>,
 }
 
 impl Iter {
     fn new(rect: IndexRect) -> Iter {
-        Iter { rect, val : None }
+        Iter { rect, val: None }
     }
 }
 
@@ -61,10 +64,8 @@ impl Iterator for Iter {
                 } else {
                     Some((x, y + 1))
                 }
-            },
-            None => {
-                Some(self.rect.start)
             }
+            None => Some(self.rect.start),
         };
         self.val
     }
@@ -77,7 +78,7 @@ mod tests {
 
     #[test]
     fn test_iterator() {
-        let rect = IndexRect::new((2,3), (5, 7));
+        let rect = IndexRect::new((2, 3), (5, 7));
         let mut set = HashSet::new();
         for (x, y) in rect.iter() {
             assert!(x >= 2 && x < 5);
@@ -89,13 +90,13 @@ mod tests {
 
     #[test]
     fn test_contains() {
-        let rect = IndexRect::new((2,3),(5,7));
-        assert!(rect.contains((2,3)));
-        assert!(rect.contains((4,6)));
-        assert!(!rect.contains((1,3)));
-        assert!(!rect.contains((2,2)));
-        assert!(!rect.contains((5,6)));
-        assert!(!rect.contains((4,7)));
+        let rect = IndexRect::new((2, 3), (5, 7));
+        assert!(rect.contains((2, 3)));
+        assert!(rect.contains((4, 6)));
+        assert!(!rect.contains((1, 3)));
+        assert!(!rect.contains((2, 2)));
+        assert!(!rect.contains((5, 6)));
+        assert!(!rect.contains((4, 7)));
     }
 
     #[test]

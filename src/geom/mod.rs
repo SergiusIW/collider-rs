@@ -14,10 +14,10 @@
 
 //! Module containing geometry primitives.
 
+mod card;
 pub(crate) mod shape;
 mod vec;
-mod card;
 
-pub use self::shape::{ShapeKind, Shape, PlacedShape};
-pub use self::vec::*;
 pub use self::card::*;
+pub use self::shape::{PlacedShape, Shape, ShapeKind};
+pub use self::vec::*;

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::ops::{Index, IndexMut};
 use std::fmt::{self, Debug, Formatter};
+use std::ops::{Index, IndexMut};
 
 /// Represents the four cardinal directions in 2D space.
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
@@ -38,7 +38,7 @@ impl Card {
             Card::MinusX => Card::PlusX,
             Card::PlusX => Card::MinusX,
             Card::MinusY => Card::PlusY,
-            Card::PlusY => Card::MinusY
+            Card::PlusY => Card::MinusY,
         }
     }
 
@@ -49,12 +49,14 @@ impl Card {
     }
 }
 
-/// A map from `Card` to `bool`, typically used to specify allowed normal vector directions.
+/// A map from `Card` to `bool`, typically used to specify allowed normal vector
+/// directions.
 #[derive(PartialEq, Eq, Copy, Clone, Hash)]
-pub struct CardMask { flags: [bool; 4] }
+pub struct CardMask {
+    flags: [bool; 4],
+}
 
 impl CardMask {
-
     /// Creates a `CardMask` with all values set to `false`.
     #[inline]
     pub fn empty() -> CardMask {
@@ -103,7 +105,13 @@ impl IndexMut<Card> for CardMask {
 
 impl Debug for CardMask {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "CardMask {{ MinusX: {}, MinusY: {}, PlusX: {}, PlusY: {} }}",
-               self[Card::MinusX], self[Card::MinusY], self[Card::PlusX], self[Card::PlusY])
+        write!(
+            f,
+            "CardMask {{ MinusX: {}, MinusY: {}, PlusX: {}, PlusY: {} }}",
+            self[Card::MinusX],
+            self[Card::MinusY],
+            self[Card::PlusX],
+            self[Card::PlusY]
+        )
     }
 }
