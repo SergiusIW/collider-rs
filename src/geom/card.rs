@@ -67,7 +67,7 @@ impl CardMask {
         CardMask { flags: [true; 4] }
     }
 
-    pub(crate) fn flip(&self) -> CardMask {
+    pub(crate) fn flip(self) -> CardMask {
         let mut result = CardMask::empty();
         result[Card::PlusX] = self[Card::MinusX];
         result[Card::MinusX] = self[Card::PlusX];

@@ -309,11 +309,11 @@ impl Sector {
         Sector { x, y }
     }
 
-    pub fn is_corner(&self) -> bool {
+    pub fn is_corner(self) -> bool {
         self.x != Ordering::Equal && self.y != Ordering::Equal
     }
 
-    pub fn corner_cards(&self) -> Option<(Card, Card)> {
+    pub fn corner_cards(self) -> Option<(Card, Card)> {
         if self.is_corner() {
             Some((
                 if self.x == Ordering::Greater { Card::PlusX } else { Card::MinusX },
