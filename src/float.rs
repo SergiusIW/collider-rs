@@ -27,7 +27,7 @@ pub struct N64 {
 impl N64 {
     fn new(val: f64) -> N64 {
         assert!(!val.is_nan(), "unexpected NaN");
-        N64 { val : val }
+        N64 { val }
     }
 }
 

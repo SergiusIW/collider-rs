@@ -54,7 +54,7 @@ impl Shape {
         if kind == ShapeKind::Circle {
             assert_eq!(dims.x, dims.y, "circle width must equal height");
         }
-        Shape { kind: kind, dims: dims }
+        Shape { kind, dims }
     }
 
     /// Constructs a new circle shape, using `diam` as the width and height.
@@ -111,7 +111,7 @@ impl PlacedShape {
     /// Constructs a new `PlacedShape` with the given `pos` and `shape`.
     #[inline]
     pub fn new(pos: Vec2, shape: Shape) -> PlacedShape {
-        PlacedShape { pos: pos, shape: shape }
+        PlacedShape { pos, shape }
     }
 
     /// Shorthand for `self.shape.kind()`
@@ -306,7 +306,7 @@ pub(crate) struct Sector {
 
 impl Sector {
     pub fn new(x: Ordering, y: Ordering) -> Sector {
-        Sector { x: x, y: y }
+        Sector { x, y }
     }
 
     pub fn is_corner(&self) -> bool {

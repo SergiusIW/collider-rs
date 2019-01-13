@@ -28,7 +28,7 @@ impl Vec2 {
     /// Constructs a vector with the given `x` and `y` coordinates.
     #[inline]
     pub fn new(x: f64, y: f64) -> Vec2 {
-        Vec2 { x: x, y: y }
+        Vec2 { x, y }
     }
 
     /// Constructs a (0, 0) vector.
@@ -188,7 +188,7 @@ impl DirVec2 {
     ///
     /// `dir` is normalized before being set.
     pub fn new(dir: Vec2, len: f64) -> DirVec2 {
-        DirVec2 { dir: dir.normalize().unwrap(), len: len }
+        DirVec2 { dir: dir.normalize().unwrap(), len }
     }
 
     /// Returns the direction as a unit vector.

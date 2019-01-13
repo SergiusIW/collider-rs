@@ -24,7 +24,7 @@ impl IndexRect {
     // start is inclusive, end is exclusive
     pub fn new(start: (i32, i32), end: (i32, i32)) -> IndexRect {
         assert!(start.0 < end.0 && start.1 < end.1, "IndexRect contains no elements");
-        IndexRect { start : start, end : end }
+        IndexRect { start, end }
     }
 
     pub fn iter(self) -> Iter {
@@ -43,7 +43,7 @@ pub struct Iter {
 
 impl Iter {
     fn new(rect: IndexRect) -> Iter {
-        Iter { rect : rect, val : None }
+        Iter { rect, val : None }
     }
 }
 
