@@ -119,7 +119,7 @@ impl Hitbox {
     fn validate(&self, min_size: f64, present_time: f64) {
         assert!(!self.vel.end_time.is_nan() && self.vel.end_time >= present_time, "end time must exceed present time");
         if self.value.kind() == ShapeKind::Circle {
-            assert_eq!(self.vel.resize.x, self.vel.resize.y, "circle resize velocity must maintain aspect ratio");
+            assert!((self.vel.resize.x - self.vel.resize.y).abs() < std::f64::EPSILON, "circle resize velocity must maintain aspect ratio");
         }
         assert!(self.value.dims().x >= min_size && self.value.dims().y >= min_size, "shape width/height must be at least {}", min_size);
     }
