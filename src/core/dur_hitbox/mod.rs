@@ -217,13 +217,13 @@ mod tests {
         assert_eq!(a.collide_time(&b), f64::INFINITY);
         assert_eq!(a.separate_time(&b, 0.1), 0.0);
 
-        b.value.shape == Shape::circle(2.0);
-        b.vel.resize == Vec2::zero();
+        b.value.shape = Shape::circle(2.0);
+        b.vel.resize = Vec2::zero();
         assert_eq!(a.collide_time(&b), f64::INFINITY);
         assert_eq!(a.separate_time(&b, 0.1), 0.0);
 
-        a.value.shape == Shape::circle(2.0);
-        a.vel.resize == Vec2::zero();
+        a.value.shape = Shape::circle(2.0);
+        a.vel.resize = Vec2::zero();
         assert_eq!(a.collide_time(&b), f64::INFINITY);
         assert_eq!(a.separate_time(&b, 0.1), 0.0);
     }
@@ -239,13 +239,13 @@ mod tests {
         assert_eq!(a.separate_time(&b, 0.1), f64::INFINITY);
         assert_eq!(a.collide_time(&b), 0.0);
 
-        b.value.shape == Shape::circle(2.0);
-        b.vel.resize == Vec2::zero();
+        b.value.shape = Shape::circle(2.0);
+        b.vel.resize = Vec2::zero();
         assert_eq!(a.separate_time(&b, 0.1), f64::INFINITY);
         assert_eq!(a.collide_time(&b), 0.0);
 
-        a.value.shape == Shape::circle(2.0);
-        a.vel.resize == Vec2::zero();
+        a.value.shape = Shape::circle(2.0);
+        a.vel.resize = Vec2::zero();
         assert_eq!(a.separate_time(&b, 0.1), f64::INFINITY);
         assert_eq!(a.collide_time(&b), 0.0);
     }
