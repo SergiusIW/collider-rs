@@ -149,10 +149,7 @@ impl Hitbox {
             "end time must exceed present time"
         );
         if self.value.kind() == ShapeKind::Circle {
-            assert!(
-                (self.vel.resize.x - self.vel.resize.y).abs() < std::f64::EPSILON,
-                "circle resize velocity must maintain aspect ratio"
-            );
+            assert_eq!(self.vel.resize.x, self.vel.resize.y, "circle resize velocity must maintain aspect ratio");
         }
         assert!(
             self.value.dims().x >= min_size && self.value.dims().y >= min_size,

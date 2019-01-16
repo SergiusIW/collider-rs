@@ -59,7 +59,7 @@ impl PartialOrd for EventKey {
 
 impl Ord for EventKey {
     fn cmp(&self, other: &Self) -> Ordering {
-        if (self.time - other.time).abs() < std::f64::EPSILON {
+        if self.time == other.time {
             self.index.cmp(&other.index)
         } else {
             n64(self.time).cmp(&n64(other.time))
@@ -174,7 +174,7 @@ impl EventManager {
 
     pub fn next<M: EventKeysMap>(&mut self, time: f64, map: &mut M) -> Option<InternalEvent> {
         if let Some(key) = self.peek_key() {
-            if (key.time() - time).abs() < std::f64::EPSILON {
+            if key.time() == time {
                 let event = self.events.remove(&key).unwrap();
                 for id in event.involved_hitbox_ids().iter() {
                     assert!(map.event_keys_mut(id).remove(&key));
