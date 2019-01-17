@@ -52,7 +52,7 @@ impl Shape {
     // allows negative dims
     fn with_any_dims(kind: ShapeKind, dims: Vec2) -> Shape {
         if kind == ShapeKind::Circle {
-            assert!((dims.x - dims.y).abs() < std::f64::EPSILON, "circle width must equal height");
+            assert_eq!(dims.x, dims.y, "circle width must equal height");
         }
         Shape { kind, dims }
     }
