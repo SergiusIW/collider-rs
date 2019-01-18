@@ -52,7 +52,7 @@ pub struct Grid {
 
 impl Grid {
     pub fn new(cell_width: f64) -> Grid {
-        Grid { map : FnvHashMap::default(), cell_width: cell_width }
+        Grid { map : FnvHashMap::default(), cell_width }
     }
 
     pub fn cell_period(&self, hitbox: &Hitbox, has_group: bool) -> f64 {
@@ -84,7 +84,7 @@ impl Grid {
     }
 
     fn grid_area(&self, hitbox: &DurHitbox, group: HbGroup) -> GridArea {
-        GridArea { rect: self.index_bounds(&hitbox.bounding_box()), group: group }
+        GridArea { rect: self.index_bounds(&hitbox.bounding_box()), group }
     }
 
     fn index_bounds(&self, bounds: &PlacedShape) -> IndexRect {
@@ -99,7 +99,7 @@ impl Grid {
         let mut result = FnvHashSet::default();
         for &group in groups {
             for coord in rect.iter() {
-                let key = GridKey { coord : coord, group : group };
+                let key = GridKey { coord, group };
                 if let Some(other_ids) = self.map.get(&key) {
                     for &other_id in other_ids.iter() {
                         if Some(other_id) != hitbox_id { result.insert(other_id); }
@@ -113,7 +113,7 @@ impl Grid {
     fn update_area(&mut self, hitbox_id: HbId, old_area: Option<GridArea>, new_area: Option<GridArea>) {
         if let Some(old_area) = old_area {
             for coord in old_area.rect.iter() {
-                let key = GridKey { coord : coord, group : old_area.group };
+                let key = GridKey { coord, group : old_area.group };
                 if new_area.map_or(true, |new_area| !new_area.contains(key)) {
                     if let hash_map::Entry::Occupied(mut entry) = self.map.entry(key) {
                         let success = entry.get_mut().remove(&hitbox_id);
@@ -127,7 +127,7 @@ impl Grid {
         }
         if let Some(new_area) = new_area {
             for coord in new_area.rect.iter() {
-                let key = GridKey { coord : coord, group : new_area.group };
+                let key = GridKey { coord, group : new_area.group };
                 if old_area.map_or(true, |old_area| !old_area.contains(key)) {
                    let other_ids = self.map.entry(key).or_insert_with(|| TightSet::new());
                    let success = other_ids.insert(hitbox_id);

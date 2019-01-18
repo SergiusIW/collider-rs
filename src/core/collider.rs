@@ -62,7 +62,7 @@ impl <P: HbProfile> Collider<P> {
             hitboxes : FnvHashMap::default(),
             time : 0.0,
             grid : Grid::new(cell_width),
-            padding : padding,
+            padding,
             events : EventManager::new()
         }
     }
@@ -342,10 +342,10 @@ struct HitboxInfo<P: HbProfile> {
 impl <P: HbProfile> HitboxInfo<P> {
     fn new(hitbox: Hitbox, profile: P, start_time: f64) -> HitboxInfo<P> {
         HitboxInfo {
-            profile: profile,
+            profile,
             pub_end_time: hitbox.vel.end_time,
-            hitbox: hitbox,
-            start_time: start_time,
+            hitbox,
+            start_time,
             event_keys: TightSet::new(),
             overlaps: TightSet::new()
         }

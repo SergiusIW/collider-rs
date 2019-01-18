@@ -139,7 +139,7 @@ impl EventManager {
             self.next_event_index += 1;
             assert!(index < PAIR_BASE);
             if for_pair { index += PAIR_BASE; }
-            let result = EventKey { time: time, index: index };
+            let result = EventKey { time, index };
             Some(result)
         }
     }
