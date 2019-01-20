@@ -12,16 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::f64;
 use std::cmp::Ordering;
+use std::f64;
 
 // N64 wraps a non-NaN f64 value and implements Ord.
 
-pub fn n64(val: f64) -> N64 { N64::new(val) }
+pub fn n64(val: f64) -> N64 {
+    N64::new(val)
+}
 
 #[derive(PartialEq, PartialOrd, Copy, Clone, Default)]
 pub struct N64 {
-    val: f64
+    val: f64,
 }
 
 impl N64 {
@@ -31,7 +33,7 @@ impl N64 {
     }
 }
 
-impl Eq for N64 { }
+impl Eq for N64 {}
 
 impl Ord for N64 {
     fn cmp(&self, other: &Self) -> Ordering {

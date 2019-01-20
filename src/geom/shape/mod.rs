@@ -14,12 +14,13 @@
 
 use std::cmp::Ordering;
 
-use geom::{Vec2, DirVec2, v2, Card, CardMask};
-use core::{Hitbox, HbVel};
+use core::{HbVel, Hitbox};
 use float::n64;
+use geom::{v2, Card, CardMask, DirVec2, Vec2};
 
 mod normals;
-#[cfg(test)] mod tests;
+#[cfg(test)]
+mod tests;
 
 /// Enumeration of kinds of shapes used by Collider.
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
@@ -27,7 +28,7 @@ pub enum ShapeKind {
     /// Circle.  Requires width and height to match.
     Circle,
     /// Axis-aligned rectangle.
-    Rect
+    Rect,
 }
 
 /// Represents a shape, without any position.
@@ -36,14 +37,15 @@ pub enum ShapeKind {
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub struct Shape {
     kind: ShapeKind,
-    dims: Vec2
+    dims: Vec2,
 }
 
 impl Shape {
-    /// Constructs a new shape with the given `kind` and `dims` (width and height dimensions).
+    /// Constructs a new shape with the given `kind` and `dims` (width and
+    /// height dimensions).
     ///
-    /// Dimensions must be non-negative.
-    /// If `kind` is `Circle`, then the width and height must match.
+    /// Dimensions must be non-negative. If `kind` is `Circle`, then the width
+    /// and height must match.
     pub fn new(kind: ShapeKind, dims: Vec2) -> Shape {
         assert!(dims.x >= 0.0 && dims.y >= 0.0, "dims must be non-negative");
         Shape::with_any_dims(kind, dims)
@@ -63,7 +65,8 @@ impl Shape {
         Shape::new(ShapeKind::Circle, v2(diam, diam))
     }
 
-    /// Constructs a new axis-aligned rectangle shape with the given `dims` (width and height dimensions).
+    /// Constructs a new axis-aligned rectangle shape with the given `dims`
+    /// (width and height dimensions).
     #[inline]
     pub fn rect(dims: Vec2) -> Shape {
         Shape::new(ShapeKind::Rect, dims)
@@ -104,7 +107,7 @@ pub struct PlacedShape {
     /// The position of the center of the shape.
     pub pos: Vec2,
     /// The shape.
-    pub shape: Shape
+    pub shape: Shape,
 }
 
 impl PlacedShape {
@@ -127,32 +130,42 @@ impl PlacedShape {
     }
 
     /// Returns the lowest x coordinate of the `PlacedShape`.
-    pub fn min_x(&self) -> f64 { self.bounds_left() }
+    pub fn min_x(&self) -> f64 {
+        self.bounds_left()
+    }
 
     /// Returns the lowest y coordinate of the `PlacedShape`.
-    pub fn min_y(&self) -> f64 { self.bounds_bottom() }
+    pub fn min_y(&self) -> f64 {
+        self.bounds_bottom()
+    }
 
     /// Returns the highest x coordinate of the `PlacedShape`.
-    pub fn max_x(&self) -> f64 { self.bounds_right() }
+    pub fn max_x(&self) -> f64 {
+        self.bounds_right()
+    }
 
     /// Returns the highest y coordinate of the `PlacedShape`.
-    pub fn max_y(&self) -> f64 { self.bounds_top() }
+    pub fn max_y(&self) -> f64 {
+        self.bounds_top()
+    }
 
-    /// Returns `true` if the two shapes overlap, subject to negligible numerical error.
+    /// Returns `true` if the two shapes overlap, subject to negligible
+    /// numerical error.
     pub fn overlaps(&self, other: &PlacedShape) -> bool {
         self.normal_from(other).len() >= 0.0
     }
 
-    /// Returns a normal vector that points in the direction from `other` to `self`.
+    /// Returns a normal vector that points in the direction from `other` to
+    /// `self`.
     ///
-    /// The length of this vector is the minimum distance that `self` would need to
-    /// be moved along this direction so that it is no longer overlapping `other`.
-    /// If the shapes are not overlappingt to begin with, then the length of this vector
-    /// is negative, and describes the minimum distance that `self` would need to
-    /// be moved so that it is just overlapping `other`.
+    /// The length of this vector is the minimum distance that `self` would need
+    /// to be moved along this direction so that it is no longer overlapping
+    /// `other`. If the shapes are not overlappingt to begin with, then the
+    /// length of this vector is negative, and describes the minimum distance
+    /// that `self` would need to be moved so that it is just overlapping
+    /// `other`.
     ///
-    /// (As a minor caveat,
-    /// when computing the normal between two `Rect` shapes,
+    /// (As a minor caveat, when computing the normal between two `Rect` shapes,
     /// the direction will always be axis-aligned.)
     pub fn normal_from(&self, other: &PlacedShape) -> DirVec2 {
         match (self.kind(), other.kind()) {
@@ -163,24 +176,34 @@ impl PlacedShape {
         }
     }
 
-    /// Returns a normal vector like `normal_from`, but only certain normal directions are permitted.
+    /// Returns a normal vector like `normal_from`, but only certain normal
+    /// directions are permitted.
     ///
-    /// A normal vector with a cardinal component that is not present in the `mask`
-    /// will not be returned, and the next-in-line normal vector will be used instead.
-    /// This function panics if `mask` is empty, or if both shapes are circles and
-    /// `mask` is anything but full.
+    /// A normal vector with a cardinal component that is not present in the
+    /// `mask` will not be returned, and the next-in-line normal vector will be
+    /// used instead. This function panics if `mask` is empty, or if both shapes
+    /// are circles and `mask` is anything but full.
     pub fn masked_normal_from(&self, other: &PlacedShape, mask: CardMask) -> DirVec2 {
         match (self.kind(), other.kind()) {
-            (ShapeKind::Rect, ShapeKind::Rect) => normals::masked_rect_rect_normal(self, other, mask),
-            (ShapeKind::Rect, ShapeKind::Circle) => normals::masked_rect_circle_normal(self, other, mask),
-            (ShapeKind::Circle, ShapeKind::Rect) => normals::masked_rect_circle_normal(other, self, mask.flip()).flip(),
-            (ShapeKind::Circle, ShapeKind::Circle) => normals::masked_circle_circle_normal(self, other, mask),
+            (ShapeKind::Rect, ShapeKind::Rect) => {
+                normals::masked_rect_rect_normal(self, other, mask)
+            }
+            (ShapeKind::Rect, ShapeKind::Circle) => {
+                normals::masked_rect_circle_normal(self, other, mask)
+            }
+            (ShapeKind::Circle, ShapeKind::Rect) => {
+                normals::masked_rect_circle_normal(other, self, mask.flip()).flip()
+            }
+            (ShapeKind::Circle, ShapeKind::Circle) => {
+                normals::masked_circle_circle_normal(self, other, mask)
+            }
         }
     }
 
     /// Returns the point of contact between two shapes.
     ///
-    /// If the shapes are not overlapping, returns the nearest point between the shapes.
+    /// If the shapes are not overlapping, returns the nearest point between the
+    /// shapes.
     pub fn contact_point(&self, other: &PlacedShape) -> Vec2 {
         match (self.kind(), other.kind()) {
             (ShapeKind::Rect, ShapeKind::Rect) => normals::rect_rect_contact(self, other),
@@ -235,7 +258,10 @@ impl PlacedShape {
     }
 
     pub(crate) fn advance(&self, vel: Vec2, resize_vel: Vec2, elapsed: f64) -> PlacedShape {
-        PlacedShape::new(self.pos + vel * elapsed, self.shape.advance(resize_vel, elapsed))
+        PlacedShape::new(
+            self.pos + vel * elapsed,
+            self.shape.advance(resize_vel, elapsed),
+        )
     }
 }
 
@@ -243,10 +269,18 @@ pub(crate) trait PlacedBounds {
     fn bounds_center(&self) -> &Vec2;
     fn bounds_dims(&self) -> &Vec2;
 
-    fn bounds_bottom(&self) -> f64 { self.bounds_center().y - self.bounds_dims().y * 0.5 }
-    fn bounds_left(&self) -> f64 { self.bounds_center().x - self.bounds_dims().x * 0.5 }
-    fn bounds_top(&self) -> f64 { self.bounds_center().y + self.bounds_dims().y * 0.5 }
-    fn bounds_right(&self) -> f64 { self.bounds_center().x + self.bounds_dims().x * 0.5 }
+    fn bounds_bottom(&self) -> f64 {
+        self.bounds_center().y - self.bounds_dims().y * 0.5
+    }
+    fn bounds_left(&self) -> f64 {
+        self.bounds_center().x - self.bounds_dims().x * 0.5
+    }
+    fn bounds_top(&self) -> f64 {
+        self.bounds_center().y + self.bounds_dims().y * 0.5
+    }
+    fn bounds_right(&self) -> f64 {
+        self.bounds_center().x + self.bounds_dims().x * 0.5
+    }
 
     fn edge(&self, card: Card) -> f64 {
         match card {
@@ -258,10 +292,11 @@ pub(crate) trait PlacedBounds {
     }
 
     fn max_edge(&self) -> f64 {
-        Card::values().iter()
-                      .map(|&card| self.edge(card).abs())
-                      .max_by_key(|&edge| n64(edge))
-                      .unwrap()
+        Card::values()
+            .iter()
+            .map(|&card| self.edge(card).abs())
+            .max_by_key(|&edge| n64(edge))
+            .unwrap()
     }
 
     fn card_overlap(&self, src: &Self, card: Card) -> f64 {
@@ -272,20 +307,24 @@ pub(crate) trait PlacedBounds {
         let x = match sector.x {
             Ordering::Less => self.bounds_left(),
             Ordering::Greater => self.bounds_right(),
-            Ordering::Equal => panic!("expected corner sector")
+            Ordering::Equal => panic!("expected corner sector"),
         };
         let y = match sector.y {
             Ordering::Less => self.bounds_bottom(),
             Ordering::Greater => self.bounds_top(),
-            Ordering::Equal => panic!("expected corner sector")
+            Ordering::Equal => panic!("expected corner sector"),
         };
         v2(x, y)
     }
 }
 
 impl PlacedBounds for PlacedShape {
-    fn bounds_center(&self) -> &Vec2 { &self.pos }
-    fn bounds_dims(&self) -> &Vec2 { &self.shape.dims }
+    fn bounds_center(&self) -> &Vec2 {
+        &self.pos
+    }
+    fn bounds_dims(&self) -> &Vec2 {
+        &self.shape.dims
+    }
 }
 
 fn interval_sector(left: f64, right: f64, val: f64) -> Ordering {
@@ -301,7 +340,7 @@ fn interval_sector(left: f64, right: f64, val: f64) -> Ordering {
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub(crate) struct Sector {
     x: Ordering,
-    y: Ordering
+    y: Ordering,
 }
 
 impl Sector {
@@ -316,8 +355,16 @@ impl Sector {
     pub fn corner_cards(self) -> Option<(Card, Card)> {
         if self.is_corner() {
             Some((
-                if self.x == Ordering::Greater { Card::PlusX } else { Card::MinusX },
-                if self.y == Ordering::Greater { Card::PlusY } else { Card::MinusY },
+                if self.x == Ordering::Greater {
+                    Card::PlusX
+                } else {
+                    Card::MinusX
+                },
+                if self.y == Ordering::Greater {
+                    Card::PlusY
+                } else {
+                    Card::MinusY
+                },
             ))
         } else {
             None

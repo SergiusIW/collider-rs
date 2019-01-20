@@ -14,10 +14,10 @@
 
 mod solvers;
 
-use std::f64;
-use geom::*;
-use geom::shape::PlacedBounds;
 use core;
+use geom::shape::PlacedBounds;
+use geom::*;
+use std::f64;
 
 // DurHitbox (and DurHbVel) is almost identical to Hitbox (and HbVel), except
 // it uses a `duration` (amount of time until invalidation of the hitbox)
@@ -54,8 +54,12 @@ impl DurHbVel {
 }
 
 impl PlacedBounds for DurHbVel {
-    fn bounds_center(&self) -> &Vec2 { &self.value }
-    fn bounds_dims(&self) -> &Vec2 { &self.resize }
+    fn bounds_center(&self) -> &Vec2 {
+        &self.value
+    }
+    fn bounds_dims(&self) -> &Vec2 {
+        &self.resize
+    }
 }
 
 #[derive(Clone)]
@@ -66,11 +70,18 @@ pub struct DurHitbox {
 
 impl DurHitbox {
     pub fn new(value: PlacedShape) -> DurHitbox {
-        DurHitbox { value, vel: DurHbVel::still() }
+        DurHitbox {
+            value,
+            vel: DurHbVel::still(),
+        }
     }
 
     pub fn advanced_shape(&self, time: f64) -> PlacedShape {
-        assert!(time < core::HIGH_TIME, "requires time < {}", core::HIGH_TIME);
+        assert!(
+            time < core::HIGH_TIME,
+            "requires time < {}",
+            core::HIGH_TIME
+        );
         self.value.advance(self.vel.value, self.vel.resize, time)
     }
 
@@ -98,8 +109,8 @@ impl DurHitbox {
 
 #[cfg(test)]
 mod tests {
-    use geom::*;
     use core::dur_hitbox::DurHitbox;
+    use geom::*;
     use std::f64;
 
     #[test]
@@ -119,10 +130,13 @@ mod tests {
     #[test]
     fn test_circle_circle_collision() {
         let sqrt2 = (2.0f64).sqrt();
-        let mut a = DurHitbox::new(PlacedShape::new(v2(-0.1*sqrt2, 0.0), Shape::circle(2.0)));
+        let mut a = DurHitbox::new(PlacedShape::new(v2(-0.1 * sqrt2, 0.0), Shape::circle(2.0)));
         a.vel.value = v2(0.1, 0.0);
         a.vel.duration = 100.0;
-        let mut b = DurHitbox::new(PlacedShape::new(v2(3.0*sqrt2, 0.0), Shape::circle(2.0 + sqrt2*0.1)));
+        let mut b = DurHitbox::new(PlacedShape::new(
+            v2(3.0 * sqrt2, 0.0),
+            Shape::circle(2.0 + sqrt2 * 0.1),
+        ));
         b.vel.value = v2(-2.0, 1.0);
         b.vel.resize = v2(-0.1, -0.1);
         b.vel.duration = 100.0;

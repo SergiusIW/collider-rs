@@ -17,13 +17,19 @@ use geom::*;
 #[test]
 fn test_circle_advance() {
     let shape_1 = Shape::circle(2.0).place(v2(3.0, 5.0));
-    assert_eq!(shape_1.advance(v2(1.0, 2.0), v2(-0.25, -0.25), 2.0), Shape::circle(1.5).place(v2(5.0, 9.0)));
+    assert_eq!(
+        shape_1.advance(v2(1.0, 2.0), v2(-0.25, -0.25), 2.0),
+        Shape::circle(1.5).place(v2(5.0, 9.0))
+    );
 }
 
 #[test]
 fn test_rect_advance() {
     let shape_1 = Shape::rect(v2(2.0, 5.0)).place(v2(3.0, 5.0));
-    assert_eq!(shape_1.advance(v2(1.0, 2.0), v2(-0.25, 1.0), 2.0), Shape::rect(v2(1.5, 7.0)).place(v2(5.0, 9.0)));
+    assert_eq!(
+        shape_1.advance(v2(1.0, 2.0), v2(-0.25, 1.0), 2.0),
+        Shape::rect(v2(1.5, 7.0)).place(v2(5.0, 9.0))
+    );
 }
 
 #[test]
@@ -59,7 +65,10 @@ fn test_rect_rect_normal() {
 fn test_circle_circle_normal() {
     let src = Shape::circle(2.0).place(v2(1.0, 1.0));
     let dst = Shape::circle(3.0).place(v2(2.0, 0.0));
-    assert_eq!(dst.normal_from(&src), DirVec2::new(v2(1.0, -1.0), 2.5 - (2.0f64).sqrt()));
+    assert_eq!(
+        dst.normal_from(&src),
+        DirVec2::new(v2(1.0, -1.0), 2.5 - (2.0f64).sqrt())
+    );
 }
 
 #[test]
@@ -76,13 +85,25 @@ fn test_rect_circle_normal() {
     assert_eq!(dst.normal_from(&src), DirVec2::new(v2(0.0, 1.0), 0.25));
 
     let dst = Shape::circle(2.5).place(v2(-2.0, -2.0));
-    assert_eq!(dst.normal_from(&src), DirVec2::new(v2(-1.0, -1.0), 1.25 - (2.0f64).sqrt()));
+    assert_eq!(
+        dst.normal_from(&src),
+        DirVec2::new(v2(-1.0, -1.0), 1.25 - (2.0f64).sqrt())
+    );
     let dst = Shape::circle(2.5).place(v2(2.0, -2.0));
-    assert_eq!(dst.normal_from(&src), DirVec2::new(v2(1.0, -1.0), 1.25 - (2.0f64).sqrt()));
+    assert_eq!(
+        dst.normal_from(&src),
+        DirVec2::new(v2(1.0, -1.0), 1.25 - (2.0f64).sqrt())
+    );
     let dst = Shape::circle(2.5).place(v2(-2.0, 2.0));
-    assert_eq!(dst.normal_from(&src), DirVec2::new(v2(-1.0, 1.0), 1.25 - (2.0f64).sqrt()));
+    assert_eq!(
+        dst.normal_from(&src),
+        DirVec2::new(v2(-1.0, 1.0), 1.25 - (2.0f64).sqrt())
+    );
     let dst = Shape::circle(2.5).place(v2(2.0, 2.0));
-    assert_eq!(dst.normal_from(&src), DirVec2::new(v2(1.0, 1.0), 1.25 - (2.0f64).sqrt()));
+    assert_eq!(
+        dst.normal_from(&src),
+        DirVec2::new(v2(1.0, 1.0), 1.25 - (2.0f64).sqrt())
+    );
 }
 
 #[test]
@@ -90,9 +111,15 @@ fn test_masked_rect_rect_normal() {
     let src = Shape::rect(v2(4.0, 4.0)).place(v2(1.0, 1.0));
     let dst = Shape::rect(v2(8.0, 8.0)).place(v2(6.0, -5.0));
     let mut mask = CardMask::full();
-    assert_eq!(dst.masked_normal_from(&src, mask), DirVec2::new(v2(0.0, -1.0), 0.0));
+    assert_eq!(
+        dst.masked_normal_from(&src, mask),
+        DirVec2::new(v2(0.0, -1.0), 0.0)
+    );
     mask[Card::MinusY] = false;
-    assert_eq!(dst.masked_normal_from(&src, mask), DirVec2::new(v2(1.0, 0.0), 1.0));
+    assert_eq!(
+        dst.masked_normal_from(&src, mask),
+        DirVec2::new(v2(1.0, 0.0), 1.0)
+    );
 }
 
 #[test]
@@ -100,12 +127,24 @@ fn test_masked_rect_circle_normal() {
     let src = Shape::rect(v2(2.0, 2.0)).place(v2(0.0, 0.0));
     let dst = Shape::circle(2.5).place(v2(-2.0, 2.0));
     let mut mask = CardMask::full();
-    assert_eq!(dst.masked_normal_from(&src, mask), DirVec2::new(v2(-1.0, 1.0), 1.25 - (2.0f64).sqrt()));
+    assert_eq!(
+        dst.masked_normal_from(&src, mask),
+        DirVec2::new(v2(-1.0, 1.0), 1.25 - (2.0f64).sqrt())
+    );
     mask[Card::PlusX] = false;
-    assert_eq!(src.masked_normal_from(&dst, mask.flip()), DirVec2::new(v2(1.0, -1.0), 1.25 - (2.0f64).sqrt()));
-    assert_eq!(dst.masked_normal_from(&src, mask), DirVec2::new(v2(-1.0, 1.0), 1.25 - (2.0f64).sqrt()));
+    assert_eq!(
+        src.masked_normal_from(&dst, mask.flip()),
+        DirVec2::new(v2(1.0, -1.0), 1.25 - (2.0f64).sqrt())
+    );
+    assert_eq!(
+        dst.masked_normal_from(&src, mask),
+        DirVec2::new(v2(-1.0, 1.0), 1.25 - (2.0f64).sqrt())
+    );
     mask[Card::PlusY] = false;
-    assert_eq!(dst.masked_normal_from(&src, mask), DirVec2::new(v2(-1.0, 0.0), 0.25));
+    assert_eq!(
+        dst.masked_normal_from(&src, mask),
+        DirVec2::new(v2(-1.0, 0.0), 0.25)
+    );
 }
 
 #[test]
