@@ -166,10 +166,10 @@ impl Hitbox {
         assert!(self.value.dims().x > min_size && self.value.dims().y > min_size);
         let mut time = f64::INFINITY;
         if self.vel.resize.x < 0.0 {
-            time = time.min((min_size - self.value.dims().x) / self.vel.value.x);
+            time = time.min((min_size - self.value.dims().x) / self.vel.resize.x);
         }
         if self.vel.resize.y < 0.0 {
-            time = time.min((min_size - self.value.dims().y) / self.vel.value.y);
+            time = time.min((min_size - self.value.dims().y) / self.vel.resize.y);
         }
         time
     }
