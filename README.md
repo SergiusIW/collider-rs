@@ -12,7 +12,7 @@ The Rust crate for this library can be found [here](https://crates.io/crates/col
 
 ### Documentation
 
-Documentation for Collider can be found [here](http://www.matthewmichelotti.com/projects/collider/rustdoc/collider/).
+Documentation for Collider can be found [here](https://docs.rs/collider/).
 
 ### Description
 
@@ -85,10 +85,6 @@ while collider.time() < 20.0 {
 //   Speed of collided hitboxes is halved.
 //   Separate between DemoHbProfile { id: 0 } and DemoHbProfile { id: 1 } at time 13.01.
 ```
-
-### Homepage
-
-The homepage for Collider is on my personal website: http://www.matthewmichelotti.com/projects/collider/.
 
 ### License
 
