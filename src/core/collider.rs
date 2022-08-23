@@ -287,6 +287,14 @@ impl<P: HbProfile> Collider<P> {
             .collect()
     }
 
+    /// Returns the profile of the hitbox with the given `id`.
+    pub fn get_profile(&self, id: HbId) -> P {
+        self.hitboxes
+            .get(&id)
+            .unwrap_or_else(|| panic!("hitbox id {} not found", id))
+            .profile
+    }
+
     /// Returns true if there is a currently tracked overlap between the
     /// hitboxes with `id_1` and `id_2`.
     pub fn is_overlapping(&self, id_1: HbId, id_2: HbId) -> bool {
