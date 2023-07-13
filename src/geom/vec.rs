@@ -169,8 +169,13 @@ impl From<Card> for Vec2 {
 
 /// Shorthand for invoking the `Vec2` constructor.
 #[inline]
-pub fn v2(x: f64, y: f64) -> Vec2 {
-    Vec2::new(x, y)
+macro_rules! v2 {
+    ($x:expr, $y:expr) => {
+        Vec2 {
+            x: $x,
+            y: $y,
+        }
+    }
 }
 
 /// A 2-D vector that separates direction from length.
